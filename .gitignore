@@ -1,3 +1,4 @@
-# govctl local state
+/artifacts/
+/bin/
 .govctl.lock
 .govctl/

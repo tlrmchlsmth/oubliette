@@ -3,7 +3,7 @@
 [govctl]
 id = "ADR-0014"
 title = "Define virtual Kubernetes API exposure"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = [
     "RFC-0001",
@@ -13,23 +13,21 @@ refs = [
 
 [content]
 context = "External agents need access to the virtual Kubernetes API and an optional per-Oubliette Kubernetes MCP server, while resident agents can use cluster-local endpoints. Placing the Kubernetes MCP server inside the Oubliette contains its virtual cluster-admin credential but does not remove the need for private connectivity from an external consumer sandbox. Decision criteria: no public endpoint by default, separation from the host API, support for OpenShell and consumer-owned connectors, bootstrap and break-glass recovery, revocation with lifecycle teardown, workload-plane failure behavior, and independently auditable authentication."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "The selected exposure model will define consumer adapter responsibilities, endpoint discovery, TLS identity, credential delivery, failure recovery, and whether the per-Oubliette Kubernetes MCP server is mandatory or profile-controlled."
+decision = "Keep each virtual Kubernetes API and optional in-Oubliette Kubernetes MCP Service private by default. A consumer-owned authenticated connector provides external agents with narrowly scoped connectivity to those endpoints; resident agents use cluster-local networking. The lifecycle MCP service returns state and opaque endpoint identity but never credentials or directly reachable public URLs. The initial CLI/demo connector is an authenticated Kubernetes port-forward owned by the trusted consumer adapter. Public Ingress, Route, Gateway, LoadBalancer, and NodePort exposure are disabled for the stub tier. Direct virtual API access remains available even when a Kubernetes MCP server is installed."
+consequences = "Oubliette does not create a public per-tenant attack surface, and each consumer can integrate its own sandbox router. Consumers must implement connector lifecycle, TLS server-name handling, endpoint discovery, and audit. A failed in-Oubliette MCP workload cannot eliminate the direct virtual API recovery path."
 
 [[content.alternatives]]
 text = "Keep virtual API and in-Oubliette Kubernetes MCP endpoints private and require a consumer-owned authenticated connector"
-status = "considered"
+status = "accepted"
 
 [[content.alternatives]]
 text = "Create a dedicated authenticated ingress endpoint for each Oubliette"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Permit only resident agents and require every external consumer to deploy an agent relay inside the Oubliette"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Expose the virtual API through a shared public gateway"
-status = "considered"
+status = "rejected"

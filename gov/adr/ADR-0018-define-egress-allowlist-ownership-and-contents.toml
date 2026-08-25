@@ -3,7 +3,7 @@
 [govctl]
 id = "ADR-0018"
 title = "Define egress allowlist ownership and contents"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = [
     "RFC-0001",
@@ -13,23 +13,21 @@ refs = [
 
 [content]
 context = "Default-deny networking is incomplete until Oubliette defines who owns egress exceptions and which destinations a default installation permits. Workloads may need DNS, image registries, model stores, source hosts, identity endpoints, telemetry, and consumer callbacks, while arbitrary egress creates an exfiltration and command-and-control path. Decision criteria: least-privilege defaults, operable model and image acquisition, FQDN and DNS enforcement correctness, prevention of raw-IP bypass, credential scope, consumer extensibility without agent self-approval, auditability, and behavior when destinations change addresses."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "The decision will define the shipped destination categories, operator and consumer override model, DNS policy, audit records, profile inputs, and whether artifact acquisition must pass through controlled proxies."
+decision = "Ship tiers with no workload egress destinations by default. Operators attach versioned destination sets for explicitly required registry, model, identity, source, telemetry, or callback services; agents cannot add destinations. A consumer may request a named operator-approved set but cannot supply arbitrary FQDNs or IP ranges. DNS and control-plane connectivity required by the vCluster implementation are separate host infrastructure rules and do not grant tenant workload egress. The initial stub profile uses an empty workload destination set and permits only same-Oubliette traffic."
+consequences = "The default minimizes exfiltration paths and makes every external dependency an operator decision. Real artifact acquisition will require accepted destination sets or controlled proxies before GPU tiers are usable. Implementations must distinguish control-plane pods from synchronized workloads, audit the resolved set, and test DNS and raw-IP bypass behavior for every network provider."
 
 [[content.alternatives]]
 text = "Ship deny-all tiers and require operators to attach explicit destination sets for registries, models, identity, source, telemetry, and callbacks"
-status = "considered"
+status = "accepted"
 
 [[content.alternatives]]
 text = "Ship a minimal operator-owned default destination set and allow approved consumer-specific additions"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Route artifact and source access through allowlisted proxies while denying direct internet egress"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Allow unrestricted internet egress and block only private and host networks"
-status = "considered"
+status = "rejected"

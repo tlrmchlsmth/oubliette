@@ -1,0 +1,7 @@
+.git
+.govctl.lock
+bin
+docs
+gov
+test
+scripts

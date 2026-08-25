@@ -3,29 +3,27 @@
 [govctl]
 id = "ADR-0004"
 title = "Choose the vCluster provisioning mechanism"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
 context = "Open-source vCluster is primarily distributed as a Helm chart, while platform APIs and generic Helm release controllers introduce different dependencies and lifecycle contracts. Oubliette needs declarative reconciliation without coupling to undocumented chart internals. Decision criteria: upstream supportability, dependency footprint, declarative convergence and status fidelity, upgrade and rollback ownership, air-gapped operation, and complete cascading teardown."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "The choice affects controller dependencies, upgrade ownership, status fidelity, rollback behavior, air-gapped installation, and whether Oubliette requires another cluster operator."
+decision = "Embed the Helm SDK in the Oubliette controller and reconcile a version- and digest-pinned upstream vCluster chart as the implementation of each Oubliette. Treat the chart as an opaque supported distribution surface: values are generated from operator-owned profiles, release state is stored in the derived host namespace, and chart templates are not copied into controller logic. Bundle the pinned chart in the controller image so reconciliation does not require runtime internet access. The initial pin is vCluster chart 0.36.1; upgrades require compatibility and teardown conformance before changing the pin."
+consequences = "Oubliette owns installation, upgrade, status projection, and uninstall without requiring Flux or vCluster Platform. The controller gains a Helm SDK dependency and must distinguish retryable release failures from terminal configuration errors. Bundling enables air-gapped reconciliation but requires provenance and digest checks for chart updates."
 
 [[content.alternatives]]
 text = "Embed the Helm SDK and reconcile a pinned vCluster chart release"
-status = "considered"
+status = "accepted"
 
 [[content.alternatives]]
 text = "Create Flux HelmRelease resources and require Flux on the host"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Target vCluster Platform VirtualClusterInstance resources"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Render and own vCluster chart objects directly"
-status = "considered"
+status = "rejected"
