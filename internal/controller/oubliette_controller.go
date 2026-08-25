@@ -110,9 +110,9 @@ func (r *OublietteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	obj.Status.VirtualEndpoint = fmt.Sprintf("%s.%s:443", obj.Name, namespace)
 	apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionProvisioned, Status: metav1.ConditionTrue, Reason: "ReleaseInstalled", Message: "vCluster release is installed", ObservedGeneration: obj.Generation})
 	if ready {
-		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionReady, Status: metav1.ConditionTrue, Reason: "VirtualAPIReady", Message: "virtual API and bootstrap credential are ready", ObservedGeneration: obj.Generation})
+		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionReady, Status: metav1.ConditionTrue, Reason: "VirtualHandoffReady", Message: "virtual API and handoff identity are ready", ObservedGeneration: obj.Generation})
 	} else {
-		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionReady, Status: metav1.ConditionFalse, Reason: "VirtualAPIStarting", Message: "waiting for the virtual API", ObservedGeneration: obj.Generation})
+		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionReady, Status: metav1.ConditionFalse, Reason: "VirtualHandoffStarting", Message: "waiting for the virtual API and handoff identity", ObservedGeneration: obj.Generation})
 	}
 	metricsReady, err := r.projectMetricsStatus(ctx, &obj, ready)
 	if err != nil {
@@ -123,7 +123,7 @@ func (r *OublietteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	if ready && metricsReady {
 		remaining := obj.Spec.ExpiresAt.Time.Sub(now)
-		if (r.MetricsProfile.Enabled || r.EvidenceExporter != nil) && remaining > 30*time.Second {
+		if remaining > 30*time.Second {
 			remaining = 30 * time.Second
 		}
 		return ctrl.Result{RequeueAfter: remaining}, nil

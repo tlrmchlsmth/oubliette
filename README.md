@@ -20,6 +20,12 @@ limits create, get, list, renew, and delete to that identity's Oubliettes.
 Rotated tokens for the same identity retain access, while tokens issued for the
 host API or another audience are rejected.
 
+The controller reports `Ready=True` only after it has used the chart-generated
+bootstrap kubeconfig in memory to reconcile the fixed `oubliette-agent`
+ServiceAccount and its virtual `cluster-admin` binding. Consumer connectors can
+then request short-lived virtual tokens without receiving that bootstrap
+kubeconfig.
+
 For example, a trusted connector can request a token for its own ServiceAccount
 and supply it to `oub` without exposing it in a model transcript:
 

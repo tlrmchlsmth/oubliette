@@ -1,0 +1,50 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-08-25-005"
+title = "Require virtual handoff readiness"
+status = "done"
+created = "2026-08-25"
+started = "2026-08-25"
+completed = "2026-08-25"
+refs = [
+    "RFC-0001:C-LIFECYCLE",
+    "RFC-0001:C-AGENT-INTERFACE",
+    "RFC-0001:C-MILESTONE-ZERO",
+    "ADR-0004",
+    "ADR-0007",
+    "ADR-0014",
+]
+tags = [
+    "security",
+    "lifecycle",
+    "vcluster",
+]
+
+[content]
+description = "Implement the [[ADR-0007]] readiness contract by provisioning the virtual handoff ServiceAccount and cluster-admin binding through the in-memory bootstrap kubeconfig, verifying both resources before Ready=True, and keeping bootstrap credentials out of status, logs, and lifecycle results."
+
+[[content.acceptance_criteria]]
+text = "The controller uses the chart-generated bootstrap kubeconfig only in memory to create a fixed virtual ServiceAccount and cluster-admin binding, without exposing bootstrap material in status, logs, or MCP results."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Handoff resource creation is declarative and idempotent, repairs drift, and retries while the virtual API is unavailable."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Ready remains false until the virtual API, bootstrap credential, handoff ServiceAccount, and exact cluster-admin binding are all present."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Automated tests cover missing and malformed bootstrap configuration, missing or incorrect handoff resources, successful provisioning, readiness, and repair."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Go tests, static validation, govctl check, and the required governance guard pass."
+status = "done"
+category = "chore"
