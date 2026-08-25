@@ -7,6 +7,7 @@ import (
 
 	oubv1 "github.com/tlrmchlsmth/oubliette/api/v1alpha1"
 	oubcontroller "github.com/tlrmchlsmth/oubliette/internal/controller"
+	"github.com/tlrmchlsmth/oubliette/internal/profile"
 	"github.com/tlrmchlsmth/oubliette/internal/vcluster"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -24,15 +25,37 @@ func main() {
 	var kueueClusterQueue string
 	var kueueManagedLabel string
 	var kueueManagedValue string
+	var metricsProfileGeneration string
+	var metricsEndpointPrefix string
+	var metricsIsolationScope string
+	var metricsTrustDomain string
+	var metricsServiceNamespace string
+	var metricsServiceName string
 	flag.StringVar(&chartPath, "vcluster-chart", "/charts/vcluster-0.36.1.tgz", "path to the pinned vCluster chart")
 	flag.BoolVar(&leaderElect, "leader-elect", true, "enable leader election")
 	flag.DurationVar(&tombstoneRetention, "tombstone-retention", time.Hour, "retention for completed TTL tombstones")
 	flag.StringVar(&kueueClusterQueue, "kueue-cluster-queue", "", "host ClusterQueue for Oubliette LocalQueues; empty uses static capacity")
 	flag.StringVar(&kueueManagedLabel, "kueue-managed-label", "kueue.x-k8s.io/managed-namespace", "namespace label key selected by host Kueue")
 	flag.StringVar(&kueueManagedValue, "kueue-managed-value", "true", "namespace label value selected by host Kueue")
+	flag.StringVar(&metricsProfileGeneration, "metrics-profile-generation", "", "trusted metrics profile generation; empty disables agent metrics access")
+	flag.StringVar(&metricsEndpointPrefix, "metrics-endpoint-prefix", "metrics", "opaque metrics endpoint identity prefix")
+	flag.StringVar(&metricsIsolationScope, "metrics-isolation-scope", "", "operator-declared metrics isolation scope")
+	flag.StringVar(&metricsTrustDomain, "metrics-trust-domain", "", "operator-approved metrics trust domain")
+	flag.StringVar(&metricsServiceNamespace, "metrics-service-namespace", "oubliette-system", "namespace containing the private metrics query gateway")
+	flag.StringVar(&metricsServiceName, "metrics-service-name", "oubliette-metrics", "Service name of the private metrics query gateway")
 	opts := zap.Options{Development: false}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+	metricsProfile := profile.MetricsProfile{
+		Enabled:        metricsProfileGeneration != "",
+		Generation:     metricsProfileGeneration,
+		EndpointPrefix: metricsEndpointPrefix,
+		IsolationScope: metricsIsolationScope,
+		TrustDomain:    metricsTrustDomain,
+	}
+	if metricsProfile.Enabled && (metricsProfile.IsolationScope == "" || metricsProfile.TrustDomain == "") {
+		panic("metrics isolation scope and trust domain are required when metrics access is enabled")
+	}
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -49,13 +72,16 @@ func main() {
 	}
 	helmManager := &vcluster.HelmManager{ChartPath: chartPath, Client: mgr.GetClient()}
 	if err := (&oubcontroller.OublietteReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		VCluster:           helmManager,
-		TombstoneRetention: tombstoneRetention,
-		KueueClusterQueue:  kueueClusterQueue,
-		KueueManagedLabel:  kueueManagedLabel,
-		KueueManagedValue:  kueueManagedValue,
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		VCluster:                helmManager,
+		TombstoneRetention:      tombstoneRetention,
+		KueueClusterQueue:       kueueClusterQueue,
+		KueueManagedLabel:       kueueManagedLabel,
+		KueueManagedValue:       kueueManagedValue,
+		MetricsProfile:          metricsProfile,
+		MetricsServiceNamespace: metricsServiceNamespace,
+		MetricsServiceName:      metricsServiceName,
 	}).SetupWithManager(mgr); err != nil {
 		panic(err)
 	}

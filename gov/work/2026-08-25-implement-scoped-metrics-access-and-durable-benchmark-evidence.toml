@@ -1,0 +1,72 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-08-25-003"
+title = "Implement scoped metrics access and durable benchmark evidence"
+status = "done"
+created = "2026-08-25"
+started = "2026-08-25"
+completed = "2026-08-25"
+refs = [
+    "RFC-0001:C-AGENT-INTERFACE",
+    "RFC-0001:C-OBSERVABILITY",
+    "RFC-0001:C-LIFECYCLE",
+    "ADR-0007",
+    "ADR-0008",
+    "ADR-0009",
+    "ADR-0010",
+    "ADR-0012",
+    "ADR-0014",
+]
+tags = [
+    "observability",
+    "security",
+    "api",
+    "lifecycle",
+]
+
+[content]
+description = "Implement the [[ADR-0010]] observability boundary: expose optional private read-only Prometheus-compatible access scoped to one Oubliette, integrate trusted host collection without duplicate scrapes, and export content-addressed benchmark evidence that survives Oubliette teardown. The first implementation must preserve the lifecycle MCP and virtual Kubernetes API boundaries, support placement-specific credential delivery, and provide portable provider interfaces rather than hard-coding one cluster monitoring stack."
+
+[[content.acceptance_criteria]]
+text = "Operator-owned profile and status types represent metrics enablement, opaque endpoint identity, trusted label policy, metric allowlist, query budgets, evidence retention policy, and provider generation without exposing host resource names."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "An authenticated read-only query gateway parses PromQL and metadata requests, injects immutable Oubliette and trust-domain selectors into every vector selector, removes sensitive labels, enforces metric allowlists and query budgets, and rejects cross-tenant joins and Prometheus administration, federation, remote-write, target, and configuration access."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Resident and external consumer integrations receive short-lived audience-bound metrics access outside MCP results and model transcripts; terminal lifecycle revokes that access, and the credential cannot authenticate to host Kubernetes or unrestricted Prometheus APIs."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Host collection integration derives Oubliette, profile, role, pod UID, endpoint, and node attribution from trusted discovery, reuses existing GPU telemetry, and blocks measurement until the expected serving and routing targets are present, healthy, and unique."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "An evidence exporter writes an immutable content-addressed run bundle and digest manifest to an operator-owned store outside the derived namespace, including exact UTC windows, inputs, versions, object lineage, placement, admission, Kueue, metrics, transport proof, results, invalidation reason, and teardown inventory while excluding credentials and secret values."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Automated tests cover selector injection for nested and adversarial PromQL, scoped label and series discovery, cross-Oubliette denial, query-budget exhaustion, credential revocation, secret exclusion, invalid-run preservation, and evidence immutability."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "A supported-cluster end-to-end validation proves scoped agent queries, authoritative target coverage, durable export before teardown, denial of cross-tenant access, metrics credential revocation, and evidence survival after Oubliette deletion; environment-specific harnesses and captured evidence remain outside the repository."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Portable unit and integration tests pass, generated RFC projections remain current, govctl validation passes, and the work item verification guard succeeds."
+status = "done"
+category = "chore"
+
+[verification]
+required_guards = ["GUARD-GOVCTL-REPOSITORY-VALIDATION"]

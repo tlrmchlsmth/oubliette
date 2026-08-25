@@ -155,8 +155,8 @@ func values(name, namespace string) map[string]any {
 					"limits":   map[string]any{"cpu": "2", "memory": "2Gi", "ephemeral-storage": "4Gi"},
 				},
 				"security": map[string]any{
-					"podSecurityContext":       map[string]any{"runAsNonRoot": true},
-					"containerSecurityContext": map[string]any{"allowPrivilegeEscalation": false, "runAsNonRoot": true, "runAsUser": nil, "runAsGroup": nil, "capabilities": map[string]any{"drop": []any{"ALL"}}},
+					"podSecurityContext":       map[string]any{"runAsNonRoot": true, "runAsUser": int64(1000), "runAsGroup": int64(1000), "fsGroup": int64(1000)},
+					"containerSecurityContext": map[string]any{"allowPrivilegeEscalation": false, "runAsNonRoot": true, "runAsUser": int64(1000), "runAsGroup": int64(1000), "capabilities": map[string]any{"drop": []any{"ALL"}}},
 				},
 				"persistence": map[string]any{
 					"volumeClaim": map[string]any{"enabled": false},

@@ -7,10 +7,11 @@ import (
 const (
 	TierStub = "stub"
 
-	ConditionProvisioned = "Provisioned"
-	ConditionReady       = "Ready"
-	ConditionExpiring    = "Expiring"
-	ConditionForgotten   = "Forgotten"
+	ConditionProvisioned  = "Provisioned"
+	ConditionReady        = "Ready"
+	ConditionMetricsReady = "MetricsReady"
+	ConditionExpiring     = "Expiring"
+	ConditionForgotten    = "Forgotten"
 )
 
 // OublietteSpec describes an expiring virtual Kubernetes control plane.
@@ -25,12 +26,16 @@ type OublietteSpec struct {
 
 // OublietteStatus projects lifecycle state without exposing credentials.
 type OublietteStatus struct {
-	ObservedGeneration int64              `json:"observedGeneration,omitempty"`
-	HostNamespace      string             `json:"hostNamespace,omitempty"`
-	ProfileGeneration  string             `json:"profileGeneration,omitempty"`
-	VirtualEndpoint    string             `json:"virtualEndpoint,omitempty"`
-	ForgottenAt        *metav1.Time       `json:"forgottenAt,omitempty"`
-	Conditions         []metav1.Condition `json:"conditions,omitempty"`
+	ObservedGeneration       int64              `json:"observedGeneration,omitempty"`
+	HostNamespace            string             `json:"hostNamespace,omitempty"`
+	ProfileGeneration        string             `json:"profileGeneration,omitempty"`
+	VirtualEndpoint          string             `json:"virtualEndpoint,omitempty"`
+	MetricsEndpoint          string             `json:"metricsEndpoint,omitempty"`
+	MetricsProfileGeneration string             `json:"metricsProfileGeneration,omitempty"`
+	MetricsIsolationScope    string             `json:"metricsIsolationScope,omitempty"`
+	MetricsTrustDomain       string             `json:"metricsTrustDomain,omitempty"`
+	ForgottenAt              *metav1.Time       `json:"forgottenAt,omitempty"`
+	Conditions               []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

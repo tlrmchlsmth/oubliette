@@ -3,25 +3,49 @@
 [govctl]
 id = "ADR-0010"
 title = "Define observability and evidence retention"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
-refs = ["RFC-0001"]
+refs = [
+    "RFC-0001",
+    "ADR-0005",
+    "ADR-0007",
+    "ADR-0008",
+    "ADR-0009",
+    "ADR-0011",
+    "ADR-0012",
+    "ADR-0014",
+]
 
 [content]
 context = "Agents need ordinary in-clique metrics while operators need host GPU telemetry, tenant isolation, exact benchmark windows, and durable proof that results came from the intended workloads and transport. Decision criteria: trustworthy tenant attribution, query isolation, scrape completeness, exact measurement windows, immutable provenance, bounded retention cost, and useful diagnostics after Oubliette teardown."
 decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "This decision determines metric tenancy, label trust, query enforcement, evidence storage, retention cost, and what constitutes a valid benchmark result."
+Separate tenant observability from operator-authoritative evidence. Agents may run ordinary metrics workloads inside their virtual cluster within profile quota, but those workloads and their data are tenant-controlled and cannot prove conformance or benchmark provenance. The host operator owns authoritative collection for synchronized workloads, routing components, Kubernetes state, Kueue admission, GPU telemetry, and provider-supported network or RDMA counters. Existing cluster collectors are reused; Oubliette must not create duplicate GPU exporters or overlapping scrapes when equivalent coverage already exists.
+
+Authoritative attribution comes only from host discovery and controller-owned metadata. The collector derives the Oubliette identity, resolved profile generation, role, pod UID, endpoint, and node from trusted host objects and service discovery, and drops or overwrites tenant-supplied values for reserved labels.
+
+Metrics access is optional per profile. The lifecycle MCP service exposes only metrics readiness and an opaque query-gateway endpoint identity; it does not proxy PromQL or return a directly reachable host URL or metrics credential. Placement-specific consumer integration delivers the private metrics endpoint and short-lived, audience-bound credential outside the model transcript, using a projected credential for resident agents or an authenticated consumer-owned connector for external agents. Metrics access is revoked when the Oubliette becomes terminal and cannot authenticate to Prometheus administration, remote-write, federation, target, configuration, or host Kubernetes APIs.
+
+The metrics API is an authenticated query gateway, never the unrestricted shared Prometheus endpoint. It parses PromQL and metadata requests, injects immutable Oubliette and trust-domain matchers into every vector selector, rejects selector removal and unsafe cross-series joins, and applies a versioned per-profile metric allowlist. Label and series discovery are subject to the same scope. Sensitive host labels are removed or replaced with approved stable identities before results reach the agent. The gateway enforces maximum lookback, step, returned samples, execution time, concurrency, and request rate, and audits the caller, original query, effective query, bounds, and outcome. Direct operator access remains outside the tenant interface.
+
+Every measured run has an opaque globally unique run ID and a declared warmup, measurement start, measurement end, and collection-export time in UTC. Measurement cannot begin until the evidence controller proves the expected set of scrape targets is present, healthy, and unique by pod UID and endpoint; a reachable metrics endpoint without an active unique target is insufficient. The expected set includes every resolved serving rank and any router or EPP whose behavior affects the result. Missing, unhealthy, duplicate, or unexpectedly relabeled targets invalidate the run. Metrics are selected with the immutable run ID and trusted Oubliette identity, never with workload-provided identity alone.
+
+Before teardown or source retention expiry, the evidence controller exports a content-addressed run bundle to an operator-owned evidence store outside the derived Oubliette namespace. The bundle contains the source specification and rendered manifests; component versions and image digests; resolved Oubliette, resource, network, isolation-scope, trust-domain, and queue profiles; virtual and host object UIDs and lineage; pod placement; admission and Kueue state; exact time boundaries; collector identity and retention policy; effective metric queries and exported samples or aggregates; benchmark inputs, structured results, stdout, errors, and invalidation reason; transport configuration and runtime proof; and teardown inventory. Secret values, kubeconfigs, bootstrap credentials, and model credentials are excluded. A manifest lists every artifact digest and the bundle digest; later annotations may add review disposition but never replace the original bundle.
+
+Retention is an operator-owned, versioned policy with separate durations for queryable metrics, raw exported evidence, and compact provenance summaries. Oubliette deletion never deletes its evidence bundle. Expiration of evidence is independently audited, and a release or benchmark claim cannot rely on evidence scheduled to expire before its required review window. Invalid runs are retained under their original run ID with the reason they were rejected; reruns receive new IDs and cannot overwrite them."""
+consequences = "Oubliette can use an environment's existing Prometheus-compatible and GPU telemetry stack without requiring one monitoring stack per virtual cluster. Trusted relabeling, the query gateway, consumer credential delivery, and query-budget enforcement become security boundaries, and an evidence controller plus durable operator-owned store become required for benchmark claims. Operators choose retention cost through explicit policy, while portable bundle manifests keep claims reviewable after source metrics and the Oubliette itself are gone. Provider integrations must define expected targets, trusted labels, allowed metrics, sensitive labels, counter sources, query budgets, and export behavior; tenant-local dashboards remain useful but non-authoritative."
 
 [[content.alternatives]]
-text = "Use host collectors with trusted clique labels and a namespace-enforcing query proxy plus ordinary in-clique scraping"
-status = "considered"
+text = "Use host collectors with trusted Oubliette labels, a private read-only selector-enforcing metrics gateway, optional tenant-local scraping, and content-addressed evidence bundles in an operator-owned store. This reuses cluster telemetry while separating convenience metrics from authoritative proof and keeps lifecycle MCP out of the metrics data path. This is the selected choice."
+status = "accepted"
 
 [[content.alternatives]]
-text = "Run a complete independent Prometheus stack inside every virtual cluster"
-status = "considered"
+text = "Run a complete independent Prometheus stack inside every virtual cluster and treat it as authoritative. This offers strong query separation but duplicates collectors, consumes tenant quota, cannot independently trust tenant-controlled labels or configuration, and disappears during teardown unless separately exported."
+status = "rejected"
 
 [[content.alternatives]]
-text = "Expose the shared host Prometheus endpoint and rely on client query discipline"
-status = "considered"
+text = "Expose the shared host Prometheus endpoint and rely on client query discipline. This minimizes infrastructure but allows accidental or hostile cross-tenant queries and cannot enforce attribution at the security boundary."
+status = "rejected"
+
+[[content.alternatives]]
+text = "Retain only benchmark summaries and links to ephemeral dashboards. This is inexpensive but cannot prove target coverage, exact windows, immutable inputs, transport selection, or teardown after source retention expires."
+status = "rejected"

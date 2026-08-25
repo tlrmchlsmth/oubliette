@@ -83,6 +83,24 @@ func (r *OublietteReconciler) ensureBoundary(ctx context.Context, obj *oubv1.Oub
 	}); err != nil {
 		return err
 	}
+	if r.MetricsProfile.Enabled {
+		metricsEgress := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "workload-metrics-egress", Namespace: namespace}}
+		if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, metricsEgress, func() error {
+			metricsEgress.Spec = networkingv1.NetworkPolicySpec{
+				PodSelector: selector,
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
+				Egress: []networkingv1.NetworkPolicyEgressRule{{
+					To: []networkingv1.NetworkPolicyPeer{{
+						NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"kubernetes.io/metadata.name": r.MetricsServiceNamespace}},
+						PodSelector:       &metav1.LabelSelector{MatchLabels: map[string]string{"app": "oubliette-metrics"}},
+					}},
+				}},
+			}
+			return controllerutil.SetControllerReference(obj, metricsEgress, r.Scheme)
+		}); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

@@ -71,3 +71,25 @@ subjects:
   - kind: ServiceAccount
     name: oubliette-mcp
     namespace: oubliette-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: oubliette-metrics
+rules:
+  - apiGroups: ["oubliette.tlrmchlsmth.github.io"]
+    resources: ["oubliettes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oubliette-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: oubliette-metrics
+subjects:
+  - kind: ServiceAccount
+    name: oubliette-metrics
+    namespace: oubliette-system

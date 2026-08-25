@@ -7,7 +7,7 @@ agent runs inside a sandbox owned by its consumer; OpenShell is the first-class
 integration, while consumers such as Crucible may provide their own sandbox.
 
 The repository contains a Go controller, authenticated MCP lifecycle service,
-and `oub` client. The system charter remains the draft [[RFC-0001]], and
+scoped metrics gateway, evidence exporter, and `oub` client. The system charter remains the draft [[RFC-0001]], and
 [[ADR-0001]] establishes the governance process.
 
 ## Kueue integration
@@ -23,6 +23,21 @@ and unbound, admitted them together, and confirmed host drain was reflected
 into the virtual API. Replacement-pod restart conformance remains blocked
 because the stub tier uses an ephemeral SQLite `emptyDir`; durable control-plane
 storage is part of the ADR-0017 decision.
+
+## Scoped metrics and evidence
+
+ADR-0010 separates agent metrics access from operator-authoritative benchmark
+evidence. Metrics are disabled by default. An operator enables the controller's
+metrics profile and the `oubliette-metrics` Deployment together, supplies a
+private Prometheus-compatible upstream, an allowlist, and an HMAC key, and
+delivers the resulting short-lived credential through a resident projection or
+authenticated external connector—not through MCP results.
+
+The gateway parses and scopes PromQL and metadata selectors, filters sensitive
+labels, enforces time, sample, concurrency, and rate budgets, and revalidates
+the Oubliette lifecycle on every request. `evidence-export` requires the
+portable ADR-0010 provenance set and writes a content-addressed immutable bundle
+outside the derived namespace.
 
 ## Governance
 
@@ -45,11 +60,9 @@ Rendered RFC documentation is published under `docs/rfc/`.
 - RFC-0001 is a draft covering isolation, lifecycle, resource bounds,
   observability, a stub-tier bootstrap milestone, and the first GPU/SR-IOV
   milestone.
-- ADR-0001, ADR-0003 through ADR-0007, ADR-0009, ADR-0011 through ADR-0015,
-  and ADR-0018 are accepted. They authorize the stub-tier implementation, its
-  host boundaries, and opt-in host-authoritative Kueue admission.
-- ADR-0002 is superseded. ADR-0008, ADR-0010, ADR-0016, and ADR-0017 remain
-  proposed, alternatives-first, and include explicit decision criteria.
-- GPU/RDMA isolation, model and image access, persistent storage, and
-  production observability remain proposed and are not authorized by the
-  Milestone 0 work item.
+- ADR-0001, ADR-0003 through ADR-0015, and ADR-0018 are accepted. They authorize
+  the stub-tier implementation, its host boundaries, opt-in host-authoritative
+  Kueue admission, provider-neutral RDMA profiles, and scoped observability.
+- ADR-0002 is superseded. ADR-0016 and ADR-0017 remain proposed,
+  alternatives-first, and include explicit decision criteria. Model and image
+  access and persistent storage are not yet authorized for implementation.

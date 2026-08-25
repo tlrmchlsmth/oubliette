@@ -47,6 +47,8 @@ type View struct {
 	ExpiresAt         string          `json:"expiresAt"`
 	Phase             string          `json:"phase"`
 	VirtualEndpointID string          `json:"virtualEndpointId,omitempty"`
+	MetricsEndpointID string          `json:"metricsEndpointId,omitempty"`
+	MetricsReady      bool            `json:"metricsReady"`
 	Conditions        []ConditionView `json:"conditions,omitempty"`
 }
 
@@ -197,5 +199,5 @@ func project(obj *oubv1.Oubliette) View {
 	for _, c := range obj.Status.Conditions {
 		conditions = append(conditions, ConditionView{Type: c.Type, Status: string(c.Status), Reason: c.Reason, Message: c.Message, LastTransitionTime: c.LastTransitionTime.UTC().Format(time.RFC3339)})
 	}
-	return View{Name: obj.Name, Tier: obj.Spec.Tier, ExpiresAt: obj.Spec.ExpiresAt.UTC().Format(time.RFC3339), Phase: phase, VirtualEndpointID: obj.Status.VirtualEndpoint, Conditions: conditions}
+	return View{Name: obj.Name, Tier: obj.Spec.Tier, ExpiresAt: obj.Spec.ExpiresAt.UTC().Format(time.RFC3339), Phase: phase, VirtualEndpointID: obj.Status.VirtualEndpoint, MetricsEndpointID: obj.Status.MetricsEndpoint, MetricsReady: apiMeta.IsStatusConditionTrue(obj.Status.Conditions, oubv1.ConditionMetricsReady), Conditions: conditions}
 }
