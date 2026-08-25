@@ -3,29 +3,27 @@
 [govctl]
 id = "ADR-0009"
 title = "Choose host Kueue integration semantics"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
 context = "Host capacity must eventually be shared fairly across cliques and multinode deployments require gang semantics. It is not yet established which Kueue objects survive or should cross the vCluster sync boundary. Decision criteria: correct all-or-nothing admission across the sync boundary, quota fairness, topology awareness, preemption semantics, tenant-visible status, deadlock avoidance, and behavior under controller or syncer failure."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "The chosen ownership model will control admission, queue visibility, preemption, topology, and whether a virtually accepted workload can deadlock on partial host placement."
+decision = "Host Kueue is authoritative for physical GPU, RDMA, topology, quota, fair-sharing, and preemption decisions. The Oubliette controller labels each managed host namespace for the operator-defined Kueue namespace selector and creates a fixed LocalQueue named oubliette bound to an operator-configured host ClusterQueue selected by tier or consumer policy. Host admission requires every vCluster-synchronized workload pod to carry exactly kueue.x-k8s.io/queue-name=oubliette; missing or alternate queue labels are rejected, while the vCluster control-plane pods in the same namespace remain outside Kueue. Multireplica workloads cross the boundary as the explicitly supported Kueue plain-Pod group contract; label enforcement, pod-group metadata, scheduling gates, admission, deletion, and status behavior across the syncer must pass conformance before multinode use. Kueue does not run inside tenant vClusters and MultiKueue is not used for Oubliettes sharing one physical host cluster. Static reserved capacity remains the fallback when Kueue APIs or required conformance are unavailable."
+consequences = "Host operators retain control of scarce physical resources while agents retain freedom to create workload controllers inside the vCluster. Oubliette must own LocalQueue lifecycle, require an operator-configured ClusterQueue, enforce namespace selection and the fixed virtual queue contract at host admission, mirror useful admission state without exposing host APIs, and validate all-or-nothing admission, topology, preemption, syncer restart, and teardown. A non-default LocalQueue avoids accidentally queueing vCluster control-plane pods, host validation avoids relying on vCluster Enterprise sync patches, and plain-Pod integration avoids synchronizing cluster-scoped Kueue APIs; agents and higher-level workload renderers must include the invariant queue label."
 
 [[content.alternatives]]
 text = "Make host Kueue authoritative and synchronize an explicitly supported workload or pod-group contract"
-status = "considered"
+status = "accepted"
 
 [[content.alternatives]]
 text = "Run Kueue independently inside each virtual cluster and rely on the host scheduler"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Admit whole cliques through an external allocator before creating their vClusters"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Defer queue integration and reserve static capacity for the first milestone"
-status = "considered"
+status = "rejected"

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	oubv1 "github.com/tlrmchlsmth/oubliette/api/v1alpha1"
 	"github.com/tlrmchlsmth/oubliette/internal/profile"
@@ -9,6 +10,8 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -17,6 +20,12 @@ const (
 	EnforcedLabel  = "oubliette.tlrmchlsmth.github.io/enforced"
 	IDLabel        = "oubliette.tlrmchlsmth.github.io/id"
 	ManagedByLabel = "vcluster.loft.sh/managed-by"
+	KueueQueueName = "oubliette"
+)
+
+var (
+	clusterQueueGVK = schema.GroupVersionKind{Group: "kueue.x-k8s.io", Version: "v1beta2", Kind: "ClusterQueue"}
+	localQueueGVK   = schema.GroupVersionKind{Group: "kueue.x-k8s.io", Version: "v1beta2", Kind: "LocalQueue"}
 )
 
 func (r *OublietteReconciler) ensureBoundary(ctx context.Context, obj *oubv1.Oubliette, p profile.Profile, namespace string) error {
@@ -27,8 +36,17 @@ func (r *OublietteReconciler) ensureBoundary(ctx context.Context, obj *oubv1.Oub
 		}
 		ns.Labels[EnforcedLabel] = "true"
 		ns.Labels[IDLabel] = obj.Name
+		if r.KueueClusterQueue != "" {
+			if r.KueueManagedLabel == "" || r.KueueManagedValue == "" {
+				return fmt.Errorf("Kueue namespace label key and value are required when Kueue is enabled")
+			}
+			ns.Labels[r.KueueManagedLabel] = r.KueueManagedValue
+		}
 		return controllerutil.SetControllerReference(obj, ns, r.Scheme)
 	}); err != nil {
+		return err
+	}
+	if err := r.ensureKueue(ctx, obj, namespace); err != nil {
 		return err
 	}
 
@@ -64,6 +82,36 @@ func (r *OublietteReconciler) ensureBoundary(ctx context.Context, obj *oubv1.Oub
 		return controllerutil.SetControllerReference(obj, intra, r.Scheme)
 	}); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (r *OublietteReconciler) ensureKueue(ctx context.Context, obj *oubv1.Oubliette, namespace string) error {
+	if r.KueueClusterQueue == "" {
+		return nil
+	}
+
+	clusterQueue := &unstructured.Unstructured{}
+	clusterQueue.SetGroupVersionKind(clusterQueueGVK)
+	if err := r.Get(ctx, types.NamespacedName{Name: r.KueueClusterQueue}, clusterQueue); err != nil {
+		if apierrors.IsNotFound(err) {
+			return fmt.Errorf("configured Kueue ClusterQueue %q does not exist", r.KueueClusterQueue)
+		}
+		return fmt.Errorf("get configured Kueue ClusterQueue %q: %w", r.KueueClusterQueue, err)
+	}
+
+	localQueue := &unstructured.Unstructured{}
+	localQueue.SetGroupVersionKind(localQueueGVK)
+	localQueue.SetName(KueueQueueName)
+	localQueue.SetNamespace(namespace)
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, localQueue, func() error {
+		if err := unstructured.SetNestedField(localQueue.Object, r.KueueClusterQueue, "spec", "clusterQueue"); err != nil {
+			return err
+		}
+		return controllerutil.SetControllerReference(obj, localQueue, r.Scheme)
+	})
+	if err != nil {
+		return fmt.Errorf("ensure fixed Kueue LocalQueue: %w", err)
 	}
 	return nil
 }

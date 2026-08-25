@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,9 +35,17 @@ func TestReconcileReadyAndExpiry(t *testing.T) {
 		}
 	}
 	obj := &oubv1.Oubliette{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: oubv1.OublietteSpec{Tier: "stub", ExpiresAt: metav1.NewTime(now.Add(time.Hour))}}
-	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&oubv1.Oubliette{}).WithObjects(obj).Build()
+	clusterQueue := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "kueue.x-k8s.io/v1beta2",
+		"kind":       "ClusterQueue",
+		"metadata":   map[string]any{"name": "test-cq"},
+	}}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&oubv1.Oubliette{}).WithObjects(obj, clusterQueue).Build()
 	vc := &fakeVCluster{ready: true}
-	r := &OublietteReconciler{Client: c, Scheme: scheme, VCluster: vc, Now: func() time.Time { return now }, TombstoneRetention: time.Minute}
+	r := &OublietteReconciler{
+		Client: c, Scheme: scheme, VCluster: vc, Now: func() time.Time { return now }, TombstoneRetention: time.Minute,
+		KueueClusterQueue: "test-cq", KueueManagedLabel: "kueue.example/managed", KueueManagedValue: "true",
+	}
 	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "test"}}
 	if _, err := r.Reconcile(context.Background(), req); err != nil {
 		t.Fatal(err)
@@ -54,6 +63,21 @@ func TestReconcileReadyAndExpiry(t *testing.T) {
 	var ns corev1.Namespace
 	if err := c.Get(context.Background(), types.NamespacedName{Name: "oub-test"}, &ns); err != nil {
 		t.Fatal(err)
+	}
+	if ns.Labels["kueue.example/managed"] != "true" {
+		t.Fatalf("Kueue namespace label missing: %#v", ns.Labels)
+	}
+	localQueue := &unstructured.Unstructured{}
+	localQueue.SetGroupVersionKind(localQueueGVK)
+	if err := c.Get(context.Background(), types.NamespacedName{Namespace: "oub-test", Name: KueueQueueName}, localQueue); err != nil {
+		t.Fatal(err)
+	}
+	if got, _, _ := unstructured.NestedString(localQueue.Object, "spec", "clusterQueue"); got != "test-cq" {
+		t.Fatalf("LocalQueue targets %q, want test-cq", got)
+	}
+	owner := metav1.GetControllerOf(localQueue)
+	if owner == nil || owner.Name != "test" || owner.Kind != "Oubliette" {
+		t.Fatalf("LocalQueue controller owner missing: %#v", owner)
 	}
 
 	now = now.Add(2 * time.Hour)
@@ -78,6 +102,32 @@ func TestReconcileReadyAndExpiry(t *testing.T) {
 	}
 	if err := c.Get(context.Background(), req.NamespacedName, &got); err == nil {
 		t.Fatal("expired tombstone was not garbage-collected")
+	}
+}
+
+func TestKueueDisabledUsesStaticCapacity(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := oubv1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	obj := &oubv1.Oubliette{ObjectMeta: metav1.ObjectMeta{Name: "static"}}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(obj).Build()
+	r := &OublietteReconciler{Client: c, Scheme: scheme}
+	if err := r.ensureKueue(context.Background(), obj, "oub-static"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestKueueRequiresConfiguredClusterQueue(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := oubv1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	obj := &oubv1.Oubliette{ObjectMeta: metav1.ObjectMeta{Name: "queued"}}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(obj).Build()
+	r := &OublietteReconciler{Client: c, Scheme: scheme, KueueClusterQueue: "missing"}
+	if err := r.ensureKueue(context.Background(), obj, "oub-queued"); err == nil {
+		t.Fatal("missing configured ClusterQueue was accepted")
 	}
 }
 

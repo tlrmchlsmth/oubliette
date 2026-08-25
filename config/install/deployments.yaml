@@ -16,7 +16,15 @@ spec:
         - name: controller
           image: image-registry.openshift-image-registry.svc:5000/oubliette-system/oubliette:demo
           imagePullPolicy: Always
-          args: ["--vcluster-chart=/charts/vcluster-0.36.1.tgz"]
+          args:
+            - --vcluster-chart=/charts/vcluster-0.36.1.tgz
+            - --kueue-cluster-queue=$(KUEUE_CLUSTER_QUEUE)
+            - --kueue-managed-label=$(KUEUE_MANAGED_LABEL)
+            - --kueue-managed-value=$(KUEUE_MANAGED_VALUE)
+          env:
+            - {name: KUEUE_CLUSTER_QUEUE, value: ""}
+            - {name: KUEUE_MANAGED_LABEL, value: kueue.x-k8s.io/managed-namespace}
+            - {name: KUEUE_MANAGED_VALUE, value: "true"}
           ports:
             - {name: health, containerPort: 8081}
           resources:

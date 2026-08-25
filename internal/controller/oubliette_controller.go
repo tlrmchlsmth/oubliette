@@ -26,6 +26,9 @@ type OublietteReconciler struct {
 	VCluster           vcluster.Manager
 	Now                func() time.Time
 	TombstoneRetention time.Duration
+	KueueClusterQueue  string
+	KueueManagedLabel  string
+	KueueManagedValue  string
 }
 
 func (r *OublietteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
