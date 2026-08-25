@@ -1,8 +1,9 @@
 # Oubliette
 
 Oubliette is a design-stage project for disposable, agent-scoped Kubernetes
-control planes that run real LLM-serving workloads through vCluster while
-keeping the host API and host policy outside the agent trust boundary.
+control planes that run real llm-d workloads through vCluster while keeping the
+host API and host policy outside the agent trust boundary. Every model-driven
+agent runs inside OpenShell.
 
 There is intentionally no controller or CLI implementation yet. The normative
 system charter is [[RFC-0001]], and architectural choices are being developed
@@ -29,7 +30,8 @@ Rendered RFC documentation is published under `docs/rfc/`.
 
 - RFC-0001 is a draft covering isolation, lifecycle, resource bounds,
   observability, and the first GPU/SR-IOV milestone.
-- ADR-0001 is accepted: Oubliette uses govctl from its first commit.
-- ADR-0002 through ADR-0010 are proposed and alternatives-first.
+- ADR-0001 and ADR-0002 are accepted: Oubliette uses govctl from its first
+  commit and requires OpenShell for both resident and bootstrap agents.
+- ADR-0003 through ADR-0010 are proposed and alternatives-first.
 - No product API, programming language, controller framework, or vCluster
   provisioning mechanism has been selected yet.

@@ -29,6 +29,7 @@ clauses = [
     "clauses/C-API-ISOLATION.toml",
     "clauses/C-HOST-ENFORCEMENT.toml",
     "clauses/C-NETWORK-ISOLATION.toml",
+    "clauses/C-AGENT-RUNTIME.toml",
 ]
 
 [[sections]]

@@ -3,25 +3,27 @@
 [govctl]
 id = "ADR-0002"
 title = "Define OpenShell Oubliette and vCluster ownership boundaries"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
-context = "Oubliette combines an agent process sandbox, a tenant Kubernetes control plane, and host execution of GPU workloads. Responsibility must be assigned so a compromise or configuration mistake in one layer does not silently collapse the others."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "The selected boundary will determine credentials, APIs, deployment ownership, failure handling, and which project is authoritative for each security control."
+context = "Oubliette exists to give OpenShell-sandboxed agents maximal authority within a disposable Kubernetes control plane while preserving independent host safety. It must support both resident workload agents and dogfooded development: during bootstrap, an OpenShell agent outside the target Oubliette uses that Oubliette to develop and test Oubliette itself. Responsibility must remain clear across both placements."
+decision = "Every model-driven agent runs inside OpenShell. Oubliette supports two compositions: a resident mode in which OpenShell launches the agent sandbox inside the Oubliette it administers, and a bootstrap mode in which an OpenShell-sandboxed developer agent runs outside the target Oubliette and uses it as a disposable environment to develop and test Oubliette. The Oubliette controller and OpenShell gateway remain trusted management-plane components outside the target virtual administrator. Oubliette owns virtual-cluster lifecycle, policy readiness, access, status, and teardown; vCluster owns virtual API isolation and synchronization; host operators own admission, resource, network, fabric, scheduling, and telemetry enforcement."
+consequences = "OpenShell becomes a required runtime dependency for every agent path. Oubliette must support both resident-agent placement and external bootstrap access, while its controller, the OpenShell gateway, host credentials, and host enforcement remain outside the target virtual administrator. Integration tests must cover both placements without treating bootstrap as recursive self-hosting."
 
 [[content.alternatives]]
-text = "Layer OpenShell process isolation, Oubliette lifecycle policy, vCluster API isolation, and independent host enforcement"
-status = "considered"
+text = "Require OpenShell and support both resident agents and external OpenShell bootstrap agents"
+status = "accepted"
 
 [[content.alternatives]]
-text = "Make Oubliette own both the agent process sandbox and virtual cluster"
-status = "considered"
+text = "Require every agent to run inside the target Oubliette, including Oubliette development"
+status = "rejected"
 
 [[content.alternatives]]
-text = "Skip vCluster and grant the agent namespace-scoped host Kubernetes access"
-status = "considered"
+text = "Treat OpenShell as optional and expose Oubliette as a generic vCluster service"
+status = "rejected"
+
+[[content.alternatives]]
+text = "Make Oubliette implement the agent process sandbox itself"
+status = "rejected"
