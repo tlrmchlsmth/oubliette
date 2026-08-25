@@ -1,0 +1,78 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-08-25-001"
+title = "Build the Pirate Milestone 0 end-to-end demo"
+status = "done"
+created = "2026-08-25"
+started = "2026-08-25"
+completed = "2026-08-25"
+refs = [
+    "RFC-0001:C-MILESTONE-ZERO",
+    "RFC-0001:C-API-ISOLATION",
+    "RFC-0001:C-HOST-ENFORCEMENT",
+    "RFC-0001:C-LIFECYCLE",
+    "RFC-0001:C-AGENT-INTERFACE",
+    "ADR-0003",
+    "ADR-0004",
+    "ADR-0005",
+    "ADR-0006",
+    "ADR-0007",
+    "ADR-0012",
+    "ADR-0013",
+    "ADR-0014",
+    "ADR-0015",
+    "ADR-0018",
+]
+tags = [
+    "api",
+    "lifecycle",
+    "security",
+    "vcluster",
+]
+
+[content]
+description = "Implement and demonstrate the smallest real stub-tier Oubliette lifecycle on the Pirate cluster: authenticated MCP creates the cluster-scoped resource, the controller provisions a pinned vCluster behind host controls, a trusted consumer connector injects short-lived virtual access outside MCP, a virtual workload is synchronized and observed, and explicit deletion plus TTL expiry leave no host artifacts. GPU, RDMA, PVC, Kueue, and production observability are out of scope."
+
+[[content.acceptance_criteria]]
+text = "Go unit tests cover API expiry validation, profile resolution, idempotent lifecycle operations, and terminal status projection."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "An authenticated MCP create call produces an Oubliette without returning host or virtual kubeconfig material."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "The controller creates a derived host namespace with stub ResourceQuota, host admission selection, default-deny workload networking, and a pinned vCluster 0.36.1 release."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "A trusted port-forward connector generates short-lived virtual cluster-admin access outside MCP, and that credential cannot authenticate to the Pirate host API."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Using only the virtual kubeconfig, the demo creates and observes a namespaced workload whose translated pod runs in the derived host namespace."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "A host admission conformance probe proves that a forbidden synchronized pod is rejected."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Explicit deletion and a separate TTL expiry each remove the vCluster release, derived namespace, synchronized workload, credentials, and transient storage without agent cleanup."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "The reproducible Pirate demo script captures redacted evidence and govctl verification passes."
+status = "done"
+category = "chore"
+
+[verification]
+required_guards = ["GUARD-GOVCTL-REPOSITORY-VALIDATION"]

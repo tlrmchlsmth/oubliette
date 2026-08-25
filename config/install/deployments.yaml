@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oubliette-controller
+  namespace: oubliette-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: oubliette-controller}
+  template:
+    metadata:
+      labels: {app: oubliette-controller}
+    spec:
+      serviceAccountName: oubliette-controller
+      containers:
+        - name: controller
+          image: image-registry.openshift-image-registry.svc:5000/oubliette-system/oubliette:demo
+          imagePullPolicy: Always
+          args: ["--vcluster-chart=/charts/vcluster-0.36.1.tgz"]
+          ports:
+            - {name: health, containerPort: 8081}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "2", memory: 1Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            runAsNonRoot: true
+          readinessProbe: {httpGet: {path: /readyz, port: health}}
+          livenessProbe: {httpGet: {path: /healthz, port: health}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oubliette-mcp
+  namespace: oubliette-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: oubliette-mcp}
+  template:
+    metadata:
+      labels: {app: oubliette-mcp}
+    spec:
+      serviceAccountName: oubliette-mcp
+      containers:
+        - name: mcp
+          image: image-registry.openshift-image-registry.svc:5000/oubliette-system/oubliette:demo
+          imagePullPolicy: Always
+          command: ["/mcp"]
+          env:
+            - name: OUBLIETTE_MCP_TOKEN
+              valueFrom: {secretKeyRef: {name: oubliette-mcp-token, key: token}}
+          ports:
+            - {name: http, containerPort: 8080}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            runAsNonRoot: true
+          readinessProbe: {httpGet: {path: /healthz, port: http}}
+          livenessProbe: {httpGet: {path: /healthz, port: http}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oubliette-mcp
+  namespace: oubliette-system
+spec:
+  type: ClusterIP
+  selector: {app: oubliette-mcp}
+  ports:
+    - {name: http, port: 8080, targetPort: http}

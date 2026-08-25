@@ -3,25 +3,23 @@
 [govctl]
 id = "ADR-0006"
 title = "Define tier profiles and resource accounting"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
 context = "Clique resource limits vary by environment and hardware, but agents must not select host resource names, synchronization rules, or policy exceptions. The initial product language proposes stub and gpu tiers. Decision criteria: a stable tenant-facing API, operator control of physical resource names, hard quota enforceability, auditable profile changes, safe hardware evolution, and deterministic admission feedback."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "The selected model determines API stability, operator configurability, quota generation, admission inputs, and how new hardware profiles are introduced."
+decision = "Expose a stable `spec.tier` name and resolve it through operator-owned, versioned, immutable profiles compiled into a controller release or supplied through trusted controller configuration. Agents may select an allowed tier but cannot supply raw quotas, device resources, runtime classes, synchronization settings, namespace names, or policy exceptions. The initial `stub` profile permits CPU-only workloads and applies explicit pod, CPU, memory, ephemeral-storage, ConfigMap, Secret, and Service bounds with no GPU, RDMA, PVC, NodePort, or LoadBalancer allocation."
+consequences = "The tenant API remains small while operators map tiers to environment-specific resources. Profile changes become audited controller configuration changes and existing Oubliettes retain the resolved profile generation recorded in status. Supporting dynamic profile CRs or new hardware tiers requires a later decision and migration design."
 
 [[content.alternatives]]
 text = "Expose stable named tiers backed by operator-owned immutable profiles"
-status = "considered"
+status = "accepted"
 
 [[content.alternatives]]
 text = "Expose raw quota and device fields directly on each Oubliette"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Reference separate operator-managed ResourceProfile custom resources"
-status = "considered"
+status = "rejected"

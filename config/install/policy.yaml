@@ -1,0 +1,36 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: oubliette-synced-pods
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+        scope: Namespaced
+  validations:
+    - expression: "!has(object.metadata.labels) || !('vcluster.loft.sh/managed-by' in object.metadata.labels) || ((!has(object.spec.hostNetwork) || !object.spec.hostNetwork) && (!has(object.spec.hostPID) || !object.spec.hostPID) && (!has(object.spec.hostIPC) || !object.spec.hostIPC))"
+      message: "Oubliette workloads may not use host network, PID, or IPC namespaces"
+    - expression: "!has(object.metadata.labels) || !('vcluster.loft.sh/managed-by' in object.metadata.labels) || !has(object.spec.volumes) || object.spec.volumes.all(v, !has(v.hostPath))"
+      message: "Oubliette workloads may not use hostPath volumes"
+    - expression: "!has(object.metadata.labels) || !('vcluster.loft.sh/managed-by' in object.metadata.labels) || object.spec.containers.all(c, !has(c.securityContext) || ((!has(c.securityContext.privileged) || !c.securityContext.privileged) && (!has(c.securityContext.allowPrivilegeEscalation) || !c.securityContext.allowPrivilegeEscalation) && (!has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.add) || c.securityContext.capabilities.add.all(cap, cap == 'NET_BIND_SERVICE'))))"
+      message: "Oubliette workloads may not be privileged, escalate privileges, or add capabilities other than NET_BIND_SERVICE"
+    - expression: "!has(object.metadata.labels) || !('vcluster.loft.sh/managed-by' in object.metadata.labels) || !has(object.spec.initContainers) || object.spec.initContainers.all(c, !has(c.securityContext) || ((!has(c.securityContext.privileged) || !c.securityContext.privileged) && (!has(c.securityContext.allowPrivilegeEscalation) || !c.securityContext.allowPrivilegeEscalation) && (!has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.add) || c.securityContext.capabilities.add.all(cap, cap == 'NET_BIND_SERVICE'))))"
+      message: "Oubliette init containers may not be privileged, escalate privileges, or add capabilities other than NET_BIND_SERVICE"
+    - expression: "!has(object.metadata.labels) || !('vcluster.loft.sh/managed-by' in object.metadata.labels) || !has(object.spec.ephemeralContainers) || object.spec.ephemeralContainers.all(c, !has(c.securityContext) || ((!has(c.securityContext.privileged) || !c.securityContext.privileged) && (!has(c.securityContext.allowPrivilegeEscalation) || !c.securityContext.allowPrivilegeEscalation) && (!has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.add) || c.securityContext.capabilities.add.all(cap, cap == 'NET_BIND_SERVICE'))))"
+      message: "Oubliette ephemeral containers may not be privileged, escalate privileges, or add capabilities other than NET_BIND_SERVICE"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: oubliette-synced-pods
+spec:
+  policyName: oubliette-synced-pods
+  validationActions: [Deny, Audit]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        oubliette.tlrmchlsmth.github.io/enforced: "true"

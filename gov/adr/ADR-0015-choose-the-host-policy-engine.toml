@@ -3,7 +3,7 @@
 [govctl]
 id = "ADR-0015"
 title = "Choose the host policy engine"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = [
     "RFC-0001",
@@ -12,23 +12,21 @@ refs = [
 
 [content]
 context = "Host admission is an independent security boundary for every object synchronized from an untrusted virtual cluster. The design names Kyverno and Kubernetes ValidatingAdmissionPolicy as candidates but does not select an authoritative engine or divide validation and mutation responsibilities. Decision criteria: enforcement during dependency failure, resistance to tenant bypass, coverage of required validation and mutation, policy testability and rollout, Kubernetes version support, audit visibility, and host operational burden."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "The choice will determine host prerequisites, fail-closed behavior, policy packaging, exception ownership, upgrade testing, and how required defaults such as RuntimeClass are applied."
+decision = "Use Kubernetes ValidatingAdmissionPolicy and bindings as the authoritative host validation engine. Install versioned cluster policies with fail-closed behavior and select only namespaces labeled as Oubliette enforcement boundaries. Apply required defaults through controller-owned vCluster sync patches and generated workload configuration, then validate the resulting host object; tenants cannot edit either layer. Do not require Kyverno for the initial implementation."
+consequences = "The security boundary uses a native, highly available API-server facility without a separate admission webhook. CEL policies must remain within native expressiveness and cannot mutate objects, so controller-owned defaulting and validation must be tested together. Clusters lacking the required ValidatingAdmissionPolicy version cannot host Oubliette until an alternative policy implementation is accepted."
 
 [[content.alternatives]]
 text = "Use native ValidatingAdmissionPolicy for validation and controller-owned defaults for mutation"
-status = "considered"
+status = "accepted"
 
 [[content.alternatives]]
 text = "Use Kyverno as the authoritative validation and mutation engine"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Use native validation for security invariants and Kyverno only where mutation or richer policy is required"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Rely on policy installed only inside each virtual cluster"
-status = "considered"
+status = "rejected"

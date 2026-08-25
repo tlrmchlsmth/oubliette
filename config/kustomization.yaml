@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - install/namespace.yaml
+  - crd/bases/oubliette.tlrmchlsmth.github.io_oubliettes.yaml
+  - install/serviceaccounts.yaml
+  - install/rbac.yaml
+  - install/policy.yaml
+  - install/deployments.yaml

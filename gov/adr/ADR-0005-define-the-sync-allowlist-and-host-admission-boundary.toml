@@ -3,25 +3,23 @@
 [govctl]
 id = "ADR-0005"
 title = "Define the sync allowlist and host admission boundary"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
 context = "A virtual cluster administrator can create arbitrary namespaced workloads and cluster-scoped virtual objects. Only a bounded subset may produce host objects, and every synchronized workload must remain subject to host controls that the tenant cannot mutate. Decision criteria: least host authority, resistance to tenant bypass, compatibility with llm-d dependencies, explicit object and field coverage, upgrade-testability, and failure behavior when synchronization or admission is unavailable."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "This decision defines the effective security boundary, supported Kubernetes surface, policy rollout mechanism, and compatibility tests required for every vCluster upgrade."
+decision = "Use a fixed, versioned vCluster synchronization allowlist generated only by the Oubliette controller. The initial allowlist contains Pods, Services, Endpoints and EndpointSlices, used ConfigMaps, and used Secrets; PVCs and every additional resource kind are disabled until separately accepted. Enforce synchronized pods independently on the host with admission policy and host-owned NetworkPolicy selected by controller-applied namespace and workload labels. Virtual-cluster policy is advisory and cannot replace either host control. Treat an unavailable host admission dependency as fail closed."
+consequences = "Agents retain arbitrary cluster-scoped APIs inside the virtual control plane, while only the enumerated namespaced workload surface reaches the host. Every vCluster version or allowlist change requires tests proving field translation, host admission, networking, and teardown. Features needing PVCs, custom resources, ingress, Gateway API, or other syncers remain unavailable until their boundary is accepted."
 
 [[content.alternatives]]
 text = "Use a fixed minimal vCluster sync allowlist plus independent host admission and network policy"
-status = "considered"
+status = "accepted"
 
 [[content.alternatives]]
 text = "Permit broad synchronization and rely primarily on policy installed inside each virtual cluster"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Replace synchronization with namespace-scoped direct host RBAC"
-status = "considered"
+status = "rejected"
