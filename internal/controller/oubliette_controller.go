@@ -22,13 +22,16 @@ const Finalizer = "oubliette.tlrmchlsmth.github.io/finalizer"
 
 type OublietteReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	VCluster           vcluster.Manager
-	Now                func() time.Time
-	TombstoneRetention time.Duration
-	KueueClusterQueue  string
-	KueueManagedLabel  string
-	KueueManagedValue  string
+	Scheme                  *runtime.Scheme
+	VCluster                vcluster.Manager
+	Now                     func() time.Time
+	TombstoneRetention      time.Duration
+	KueueClusterQueue       string
+	KueueManagedLabel       string
+	KueueManagedValue       string
+	MetricsProfile          profile.MetricsProfile
+	MetricsServiceNamespace string
+	MetricsServiceName      string
 }
 
 func (r *OublietteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -101,11 +104,19 @@ func (r *OublietteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	} else {
 		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionReady, Status: metav1.ConditionFalse, Reason: "VirtualAPIStarting", Message: "waiting for the virtual API", ObservedGeneration: obj.Generation})
 	}
+	metricsReady, err := r.projectMetricsStatus(ctx, &obj, ready)
+	if err != nil {
+		return r.fail(ctx, &obj, "MetricsReadinessFailed", err)
+	}
 	if err := r.Status().Patch(ctx, &obj, client.MergeFrom(base)); err != nil {
 		return ctrl.Result{}, err
 	}
-	if ready {
-		return ctrl.Result{RequeueAfter: time.Until(obj.Spec.ExpiresAt.Time)}, nil
+	if ready && metricsReady {
+		remaining := obj.Spec.ExpiresAt.Time.Sub(now)
+		if r.MetricsProfile.Enabled && remaining > 30*time.Second {
+			remaining = 30 * time.Second
+		}
+		return ctrl.Result{RequeueAfter: remaining}, nil
 	}
 	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 }
@@ -135,7 +146,12 @@ func (r *OublietteReconciler) finalize(ctx context.Context, obj *oubv1.Oubliette
 		obj.Status.ForgottenAt = &forgottenAt
 		obj.Status.HostNamespace = ""
 		obj.Status.VirtualEndpoint = ""
+		obj.Status.MetricsEndpoint = ""
+		obj.Status.MetricsProfileGeneration = ""
+		obj.Status.MetricsIsolationScope = ""
+		obj.Status.MetricsTrustDomain = ""
 		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionReady, Status: metav1.ConditionFalse, Reason: "Forgotten", Message: "all runtime resources have been removed", ObservedGeneration: obj.Generation})
+		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionMetricsReady, Status: metav1.ConditionFalse, Reason: "Forgotten", Message: "metrics access has been revoked", ObservedGeneration: obj.Generation})
 		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionForgotten, Status: metav1.ConditionTrue, Reason: "TTLTeardownComplete", Message: "TTL teardown completed", ObservedGeneration: obj.Generation})
 		if err := r.Status().Patch(ctx, obj, client.MergeFrom(base)); err != nil {
 			return ctrl.Result{}, err

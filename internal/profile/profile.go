@@ -12,6 +12,34 @@ const StubGeneration = "stub-v1"
 type Profile struct {
 	Generation string
 	Quota      corev1.ResourceList
+	Metrics    MetricsProfile
+}
+
+type MetricsProfile struct {
+	Enabled              bool
+	Generation           string
+	EndpointPrefix       string
+	IsolationScope       string
+	TrustDomain          string
+	AllowedMetrics       []string
+	TrustedLabels        []string
+	SensitiveLabels      []string
+	ReuseGPUTelemetry    bool
+	MaxLookbackSeconds   int64
+	MinStepSeconds       int64
+	MaxExecutionSeconds  int64
+	MaxSamples           int
+	MaxResponseBytes     int64
+	MaxConcurrency       int
+	MaxRequestsPerMinute int
+	Retention            EvidenceRetentionPolicy
+}
+
+type EvidenceRetentionPolicy struct {
+	Generation            string
+	QueryableMetricsDays  int
+	RawEvidenceDays       int
+	ProvenanceSummaryDays int
 }
 
 func Resolve(tier string) (Profile, error) {
@@ -20,6 +48,7 @@ func Resolve(tier string) (Profile, error) {
 	}
 	return Profile{
 		Generation: StubGeneration,
+		Metrics:    MetricsProfile{Enabled: false},
 		Quota: corev1.ResourceList{
 			corev1.ResourcePods:                     resource.MustParse("8"),
 			corev1.ResourceRequestsCPU:              resource.MustParse("4"),

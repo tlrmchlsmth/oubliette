@@ -11,11 +11,15 @@ COPY api api
 COPY cmd cmd
 COPY internal internal
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/controller ./cmd/controller && \
-    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/mcp ./cmd/mcp
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/mcp ./cmd/mcp && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/metrics-gateway ./cmd/metrics-gateway && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/evidence-export ./cmd/evidence-export
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/controller /controller
 COPY --from=build /out/mcp /mcp
+COPY --from=build /out/metrics-gateway /metrics-gateway
+COPY --from=build /out/evidence-export /evidence-export
 COPY --from=chart /charts/vcluster-0.36.1.tgz /charts/vcluster-0.36.1.tgz
 USER 65532:65532
 ENTRYPOINT ["/controller"]

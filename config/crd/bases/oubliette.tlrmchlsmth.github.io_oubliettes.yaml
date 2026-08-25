@@ -63,6 +63,14 @@ spec:
                   type: string
                 virtualEndpoint:
                   type: string
+                metricsEndpoint:
+                  type: string
+                metricsProfileGeneration:
+                  type: string
+                metricsIsolationScope:
+                  type: string
+                metricsTrustDomain:
+                  type: string
                 forgottenAt:
                   type: string
                   format: date-time

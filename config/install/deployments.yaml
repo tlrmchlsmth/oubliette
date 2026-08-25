@@ -21,10 +21,16 @@ spec:
             - --kueue-cluster-queue=$(KUEUE_CLUSTER_QUEUE)
             - --kueue-managed-label=$(KUEUE_MANAGED_LABEL)
             - --kueue-managed-value=$(KUEUE_MANAGED_VALUE)
+            - --metrics-profile-generation=$(METRICS_PROFILE_GENERATION)
+            - --metrics-isolation-scope=$(METRICS_ISOLATION_SCOPE)
+            - --metrics-trust-domain=$(METRICS_TRUST_DOMAIN)
           env:
             - {name: KUEUE_CLUSTER_QUEUE, value: ""}
             - {name: KUEUE_MANAGED_LABEL, value: kueue.x-k8s.io/managed-namespace}
             - {name: KUEUE_MANAGED_VALUE, value: "true"}
+            - {name: METRICS_PROFILE_GENERATION, value: ""}
+            - {name: METRICS_ISOLATION_SCOPE, value: ""}
+            - {name: METRICS_TRUST_DOMAIN, value: ""}
           ports:
             - {name: health, containerPort: 8081}
           resources:
@@ -81,3 +87,75 @@ spec:
   selector: {app: oubliette-mcp}
   ports:
     - {name: http, port: 8080, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oubliette-metrics
+  namespace: oubliette-system
+spec:
+  replicas: 0
+  selector:
+    matchLabels: {app: oubliette-metrics}
+  template:
+    metadata:
+      labels: {app: oubliette-metrics}
+    spec:
+      serviceAccountName: oubliette-metrics
+      containers:
+        - name: metrics-gateway
+          image: image-registry.openshift-image-registry.svc:5000/oubliette-system/oubliette:demo
+          imagePullPolicy: Always
+          command: ["/metrics-gateway"]
+          args:
+            - --prometheus-url=$(PROMETHEUS_URL)
+            - --profile-generation=$(METRICS_PROFILE_GENERATION)
+            - --allowed-metrics=$(ALLOWED_METRICS)
+          env:
+            - {name: PROMETHEUS_URL, value: ""}
+            - {name: METRICS_PROFILE_GENERATION, value: ""}
+            - {name: ALLOWED_METRICS, value: ""}
+          volumeMounts:
+            - {name: token-key, mountPath: /var/run/secrets/oubliette-metrics, readOnly: true}
+          ports:
+            - {name: http, containerPort: 8082}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            runAsNonRoot: true
+          readinessProbe: {httpGet: {path: /healthz, port: http}}
+          livenessProbe: {httpGet: {path: /healthz, port: http}}
+      volumes:
+        - name: token-key
+          secret:
+            secretName: oubliette-metrics-token-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oubliette-metrics
+  namespace: oubliette-system
+spec:
+  type: ClusterIP
+  selector: {app: oubliette-metrics}
+  ports:
+    - {name: http, port: 8082, targetPort: http}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oubliette-metrics-private
+  namespace: oubliette-system
+spec:
+  podSelector:
+    matchLabels: {app: oubliette-metrics}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchExpressions:
+              - key: oubliette.tlrmchlsmth.github.io/id
+                operator: Exists
