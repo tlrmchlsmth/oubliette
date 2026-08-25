@@ -7,4 +7,4 @@ kind = "normative"
 status = "active"
 
 [content]
-text = "The first milestone MUST run two synchronized inference pods on one GPU node, allocate a bounded SR-IOV VF to each pod, enforce host admission and default-deny networking, and prove KV traffic traverses the intended VF rather than pod networking, shared memory, CUDA IPC, or another fallback. TTL teardown MUST remove all host artifacts without agent cleanup."
+text = "The first milestone MUST run two synchronized inference pods on one GPU node, account for each pod's RDMA access through a bounded operator-provided resource request, record its declared isolation scope and trust domain, and enforce host admission and default-deny pod networking. Evidence MUST prove KV traffic traverses the intended RDMA backend and device rather than pod networking, shared memory, CUDA IPC, TCP, or another fallback. TTL teardown MUST remove all Oubliette-owned host artifacts without agent cleanup."

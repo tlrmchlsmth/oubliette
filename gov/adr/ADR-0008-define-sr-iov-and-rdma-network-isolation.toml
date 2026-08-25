@@ -2,30 +2,43 @@
 
 [govctl]
 id = "ADR-0008"
-title = "Define SR-IOV and RDMA network isolation"
-status = "proposed"
+title = "Define RDMA access and fabric isolation scopes"
+status = "accepted"
 date = "2026-08-25"
-refs = ["RFC-0001"]
+refs = [
+    "RFC-0001",
+    "ADR-0005",
+    "ADR-0006",
+    "ADR-0009",
+    "ADR-0015",
+]
 
 [content]
-context = "Kubernetes NetworkPolicy does not constrain the RDMA fabric. The first milestone needs two pods to exchange KV data through SR-IOV while preventing accidental or hostile cross-clique fabric access. Decision criteria: independently enforceable cross-clique isolation, compatibility with the target fabric and KV transport, minimum allocatable hardware unit, provable transport selection, exhaustion behavior, and operational recovery from leaked allocations."
+context = "Kubernetes NetworkPolicy does not constrain RDMA traffic, but host environments expose materially different RDMA contracts. Some allocate a distinct SR-IOV VF or hardware partition, some grant a shared RDMA device resource, and some isolate only at a node, cluster, account, or physical-fabric boundary. Requiring Oubliette to create a per-clique P_Key, VLAN, or VF would exclude otherwise useful managed GPU clusters and duplicate fabric ownership that belongs to the operator. Decision criteria: portable provider integration, explicit trust boundaries, bounded Kubernetes accounting, provable transport selection, honest isolation claims, exhaustion behavior, and complete Oubliette teardown."
 decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "This decision establishes the minimum allocatable isolation unit, required fabric integration, failure containment, and transport evidence needed before multi-node work."
+Consume RDMA only through operator-owned, versioned, immutable network profiles. A profile identifies the opaque Kubernetes resource and any attachment configuration a workload must request, its per-pod and per-Oubliette resource-request bounds, eligible topology, exhaustion behavior, and an explicit isolation scope. Supported scopes are `oubliette`, where the provider independently isolates one Oubliette; `exclusive-node`, where no other trust domain may use RDMA on the assigned node; and `operator-trust-domain`, where the provider fabric is shared only among workloads the operator has approved to trust one another. An unknown, undeclared, or unenforced scope cannot enable an RDMA-capable tier.
+
+Agents select an allowed tier but cannot choose the RDMA provider, host resource name, attachment, node, interface, VF, P_Key, VLAN, isolation scope, trust domain, or exception. The controller records the resolved profile generation and isolation scope in status. Controller-owned workload defaults and host admission require the exact resolved RDMA request, enforce the profile's bounds, and reject alternate host networking or device resources. The provider may use a shared RDMA device plugin, SR-IOV device plugin and Multus attachment, Dynamic Resource Allocation, or another operator-supported mechanism; Oubliette does not manage PFs, VFs, switches, subnet managers, P_Keys, or VLANs.
+
+Mutually untrusted Oubliettes must not share an `operator-trust-domain` profile. They require an `oubliette` scope, `exclusive-node` placement, or a stricter operator boundary. Shared RDMA is therefore permitted for a single operator-approved trust domain, including development and benchmark environments, but it is never reported as per-Oubliette fabric isolation. Kueue may account for the resolved resource and topology, but queue admission does not strengthen the declared isolation scope. Exhaustion fails closed: workloads remain pending or rejected and cannot silently fall back to another RDMA provider or transport.
+
+Teardown deletes the Oubliette's RDMA workloads, attachment objects, and allocations that it owns. Shared provider infrastructure may persist, but no Oubliette-specific credential, claim, attachment, or reservation may survive. Provider cleanup failures remain externally visible and block reuse of any allocation whose safety cannot be established.
+
+Transport proof and isolation proof are separate. Every RDMA result must record the network-profile generation, provider, declared isolation scope and trust domain, pod placement, effective RDMA devices, and configured transport exclusions. Runtime evidence from both peers must identify the intended RDMA backend, device, and lane while excluding CUDA IPC, shared memory, TCP, and the ordinary pod interface; provider-supported device or fabric counters must increase during a controlled transfer. Isolation evidence must prove the declared scope, but a valid transport result does not imply a stronger isolation scope. Missing, ambiguous, or fallback evidence invalidates the corresponding claim."""
+consequences = "Oubliette can use managed shared-RDMA clusters without pretending that Kubernetes provides per-Oubliette fabric isolation, while stricter environments can supply VF, partition, or exclusive-placement profiles behind the same tenant API. Operators must define trust domains and prevent incompatible Oubliettes from sharing a profile. Each provider requires conformance for resource accounting, sync translation, declared isolation, transport selection, exhaustion, and teardown. Oubliette gives up automatic fine-grained fabric partitioning as a universal requirement; deployments needing hostile multi-tenancy must obtain an adequate provider scope or disable RDMA."
 
 [[content.alternatives]]
-text = "Allocate clique-scoped SR-IOV VFs with a dedicated pkey or VLAN from an operator-sized hardware pool"
-status = "considered"
+text = "Consume an operator-provided RDMA resource with an explicit isolation scope and trust domain, allowing shared RDMA only within an operator-approved trust domain. This is portable across managed and self-operated clusters and makes weaker isolation visible instead of implying it. This is the selected choice."
+status = "accepted"
 
 [[content.alternatives]]
-text = "Use shared SR-IOV VFs without per-clique fabric segmentation"
-status = "considered"
+text = "Require a dedicated SR-IOV VF and fabric partition for every RDMA pod and Oubliette. This offers a strong fine-grained boundary but requires fabric-manager integration that many managed clusters do not expose and makes Oubliette own provider-specific infrastructure."
+status = "rejected"
 
 [[content.alternatives]]
-text = "Dedicate an entire fabric domain or node partition to each GPU clique"
-status = "considered"
+text = "Permit any shared RDMA resource without declaring or enforcing its trust boundary. This is operationally simple but makes cross-Oubliette exposure invisible and cannot support a meaningful isolation claim."
+status = "rejected"
 
 [[content.alternatives]]
-text = "Exclude RDMA from the first milestone"
-status = "considered"
+text = "Exclude RDMA from Milestone 1 and validate only pod networking. This avoids fabric risk but does not exercise the intended KV transport path."
+status = "rejected"

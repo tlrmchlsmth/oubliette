@@ -7,4 +7,4 @@ kind = "normative"
 status = "active"
 
 [content]
-text = "Every clique MUST use an operator-owned resource profile that bounds pod count, GPU and device allocation, RDMA VFs, hugepages, storage, and service exposure on the host. Agent input MUST NOT contain raw host resource names, namespace names, synchronization rules, or policy exceptions."
+text = "Every clique MUST use an operator-owned resource profile that bounds pod count, GPU and device allocation, RDMA access, hugepages, storage, and service exposure on the host. Agent input MUST NOT contain raw host resource names, namespace names, synchronization rules, isolation scopes, trust domains, or policy exceptions."
