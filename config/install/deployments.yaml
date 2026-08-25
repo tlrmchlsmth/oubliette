@@ -82,9 +82,7 @@ spec:
           image: image-registry.openshift-image-registry.svc:5000/oubliette-system/oubliette:demo
           imagePullPolicy: Always
           command: ["/mcp"]
-          env:
-            - name: OUBLIETTE_MCP_TOKEN
-              valueFrom: {secretKeyRef: {name: oubliette-mcp-token, key: token}}
+          args: ["--token-audience=oubliette-mcp"]
           ports:
             - {name: http, containerPort: 8080}
           resources:

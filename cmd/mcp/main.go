@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
-	"crypto/subtle"
 	"flag"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	oubv1 "github.com/tlrmchlsmth/oubliette/api/v1alpha1"
 	"github.com/tlrmchlsmth/oubliette/internal/lifecycle"
+	"github.com/tlrmchlsmth/oubliette/internal/mcpauth"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,14 +20,13 @@ import (
 
 func main() {
 	var listen string
+	var tokenAudience string
 	flag.StringVar(&listen, "listen", ":8080", "HTTP listen address")
+	flag.StringVar(&tokenAudience, "token-audience", mcpauth.DefaultAudience, "required audience for MCP bearer tokens")
 	flag.Parse()
-	token := os.Getenv("OUBLIETTE_MCP_TOKEN")
-	if token == "" {
-		log.Fatal("OUBLIETTE_MCP_TOKEN is required")
-	}
 	scheme := runtime.NewScheme()
 	utilruntime.Must(oubv1.AddToScheme(scheme))
+	utilruntime.Must(authenticationv1.AddToScheme(scheme))
 	kube, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
 	if err != nil {
 		log.Fatal(err)
@@ -56,23 +55,11 @@ func main() {
 	})
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, &mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 1 << 20, PropagateRequestCancellation: true})
 	mux := http.NewServeMux()
-	mux.Handle("/mcp", bearer(token, handler))
+	mux.Handle("/mcp", mcpauth.Authenticate(mcpauth.KubernetesResolver{Client: kube, Audience: tokenAudience}, handler))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	httpServer := &http.Server{Addr: listen, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("oubliette MCP listening on %s", listen)
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
-}
-
-func bearer(want string, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		got, expected := r.Header.Get("Authorization"), "Bearer "+want
-		if len(got) != len(expected) || subtle.ConstantTimeCompare([]byte(got), []byte(expected)) != 1 {
-			w.Header().Set("WWW-Authenticate", "Bearer")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
