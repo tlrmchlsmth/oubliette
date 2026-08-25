@@ -70,7 +70,7 @@ status = "done"
 category = "security"
 
 [[content.acceptance_criteria]]
-text = "The reproducible Pirate demo script captures redacted evidence and govctl verification passes."
+text = "A local Pirate validation run captures redacted evidence outside the repository and govctl verification passes."
 status = "done"
 category = "chore"
 

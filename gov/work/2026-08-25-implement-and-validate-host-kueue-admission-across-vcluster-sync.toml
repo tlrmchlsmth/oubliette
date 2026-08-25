@@ -46,7 +46,7 @@ status = "done"
 category = "chore"
 
 [[content.acceptance_criteria]]
-text = "A governed Kueue conformance record and reproducible script capture redacted evidence, and govctl validation passes."
+text = "A local Kueue validation run captures redacted evidence outside the repository, and govctl validation passes."
 status = "done"
 category = "chore"
 

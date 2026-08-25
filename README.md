@@ -10,23 +10,7 @@ The repository contains a Go controller, authenticated MCP lifecycle service,
 and `oub` client. The system charter remains the draft [[RFC-0001]], and
 [[ADR-0001]] establishes the governance process.
 
-## Pirate Milestone 0 demo
-
-The demo runs the controller and MCP service locally against the VPN-only
-Pirate cluster, while the vCluster control plane and synchronized workloads run
-on Pirate. It requires `go`, `helm`, `kubectl`, `curl`, `jq`, `rg`, `openssl`,
-and an authenticated `pirate` context with cluster-admin access.
-
-```console
-./scripts/pirate-e2e.sh
-```
-
-It proves authenticated lifecycle creation, private virtual API access,
-short-lived virtual-only credentials, host admission and resource/network
-boundaries, a real synchronized workload, explicit teardown, and TTL teardown.
-Redacted evidence is written beneath `artifacts/e2e/`.
-
-## Pirate Kueue conformance
+## Kueue integration
 
 Host-authoritative Kueue integration is opt-in through the controller's
 `--kueue-cluster-queue` flag. The controller labels the host namespace and
@@ -34,15 +18,11 @@ creates a fixed `oubliette` LocalQueue; host admission requires synchronized
 pods to use that queue and prevents the vCluster syncer from removing Kueue's
 admission gate.
 
-```console
-./scripts/pirate-kueue-e2e.sh
-```
-
-The conformance run holds a two-pod group, proves both pods remain gated and
-unbound, admits them together, and confirms host drain is reflected into the
-virtual API. Replacement-pod restart conformance remains blocked because the
-stub tier uses an ephemeral SQLite `emptyDir`; durable control-plane storage is
-part of the ADR-0017 decision.
+Host-cluster validation held a two-pod group, proved both pods remained gated
+and unbound, admitted them together, and confirmed host drain was reflected
+into the virtual API. Replacement-pod restart conformance remains blocked
+because the stub tier uses an ephemeral SQLite `emptyDir`; durable control-plane
+storage is part of the ADR-0017 decision.
 
 ## Governance
 

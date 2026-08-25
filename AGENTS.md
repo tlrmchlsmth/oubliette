@@ -14,4 +14,10 @@ Oubliette uses govctl as its governance control plane.
   files under `docs/rfc/`.
 - Add executable guards and conformance cases as implementation work is
   authorized.
+- Keep environment-specific operational scripts, cluster credentials, captured
+  evidence, and one-off validation harnesses out of the repository. Run them
+  from local or otherwise ephemeral workspace paths and record only portable
+  product behavior and durable test coverage in the repository. Committing an
+  environment-specific harness requires an accepted ADR that explains why it
+  is a maintained product artifact.
 - Sign every commit for DCO compliance with `git commit -s`.
