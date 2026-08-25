@@ -7,4 +7,4 @@ kind = "normative"
 status = "active"
 
 [content]
-text = "Host pod networking MUST default deny traffic outside the clique, permit required intra-clique traffic, and restrict egress to an operator allowlist. RDMA traffic MUST use clique-scoped SR-IOV allocation and fabric segmentation where supported. The design MUST document any fabric isolation unit that Kubernetes cannot enforce."
+text = "Host pod networking MUST default deny traffic outside the clique, permit required intra-clique traffic, and restrict egress to an operator allowlist. RDMA access MUST come from an operator-owned profile that declares its enforced isolation scope and trust domain. Mutually untrusted cliques MUST NOT share an RDMA trust domain; they require per-clique isolation, exclusive placement, or a stricter operator boundary. Transport evidence MUST NOT be presented as proof of a stronger fabric isolation scope."
