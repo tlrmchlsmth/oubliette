@@ -1,0 +1,14 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-EVIDENCE-RUN-ID-UNIQUENESS"
+title = "Evidence run IDs are globally unique"
+
+[case]
+path = "internal/evidence/bundle_test.go"
+selector = "TestDirectoryStoreRejectsRunIDReuse"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-OBSERVABILITY"
+version = "0.1.0"

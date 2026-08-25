@@ -22,10 +22,19 @@ import (
 type fakeVCluster struct {
 	ensured, deleted bool
 	ready            bool
+	beforeDelete     func() error
 }
 
-func (f *fakeVCluster) Ensure(context.Context, string, string) error        { f.ensured = true; return nil }
-func (f *fakeVCluster) Delete(context.Context, string, string) error        { f.deleted = true; return nil }
+func (f *fakeVCluster) Ensure(context.Context, string, string) error { f.ensured = true; return nil }
+func (f *fakeVCluster) Delete(context.Context, string, string) error {
+	if f.beforeDelete != nil {
+		if err := f.beforeDelete(); err != nil {
+			return err
+		}
+	}
+	f.deleted = true
+	return nil
+}
 func (f *fakeVCluster) Ready(context.Context, string, string) (bool, error) { return f.ready, nil }
 
 func TestReconcileReadyAndExpiry(t *testing.T) {
@@ -118,6 +127,62 @@ func TestReconcileReadyAndExpiry(t *testing.T) {
 	}
 	if err := c.Get(context.Background(), req.NamespacedName, &got); err == nil {
 		t.Fatal("expired tombstone was not garbage-collected")
+	}
+}
+
+type fakeEvidenceExporter struct {
+	exported bool
+	err      error
+}
+
+func (f *fakeEvidenceExporter) ExportBeforeTeardown(context.Context, *oubv1.Oubliette, string) error {
+	f.exported = true
+	return f.err
+}
+
+func TestFinalizeExportsEvidenceBeforeDeletingSources(t *testing.T) {
+	now := time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC)
+	scheme := runtime.NewScheme()
+	for _, add := range []func(*runtime.Scheme) error{oubv1.AddToScheme, corev1.AddToScheme} {
+		if err := add(scheme); err != nil {
+			t.Fatal(err)
+		}
+	}
+	obj := &oubv1.Oubliette{ObjectMeta: metav1.ObjectMeta{Name: "measured", Finalizers: []string{Finalizer}}, Spec: oubv1.OublietteSpec{Tier: "stub", ExpiresAt: metav1.NewTime(now.Add(-time.Minute))}}
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "oub-measured"}}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&oubv1.Oubliette{}).WithObjects(obj, ns).Build()
+	exporter := &fakeEvidenceExporter{}
+	vc := &fakeVCluster{beforeDelete: func() error {
+		if !exporter.exported {
+			return context.Canceled
+		}
+		return nil
+	}}
+	r := &OublietteReconciler{Client: c, Scheme: scheme, VCluster: vc, Now: func() time.Time { return now }, EvidenceExporter: exporter}
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: obj.Name}}
+	if _, err := r.Reconcile(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	if !exporter.exported || !vc.deleted {
+		t.Fatalf("exported=%v deleted=%v", exporter.exported, vc.deleted)
+	}
+}
+
+func TestFinalizeBlocksDeletionWhenEvidenceExportFails(t *testing.T) {
+	now := time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC)
+	scheme := runtime.NewScheme()
+	if err := oubv1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	obj := &oubv1.Oubliette{ObjectMeta: metav1.ObjectMeta{Name: "measured", Finalizers: []string{Finalizer}}, Spec: oubv1.OublietteSpec{Tier: "stub", ExpiresAt: metav1.NewTime(now.Add(-time.Minute))}}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&oubv1.Oubliette{}).WithObjects(obj).Build()
+	vc := &fakeVCluster{}
+	r := &OublietteReconciler{Client: c, Scheme: scheme, VCluster: vc, Now: func() time.Time { return now }, EvidenceExporter: &fakeEvidenceExporter{err: context.DeadlineExceeded}}
+	if _, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: types.NamespacedName{Name: obj.Name}}); err == nil {
+		t.Fatal("evidence export failure did not block teardown")
+	}
+	if vc.deleted {
+		t.Fatal("vCluster was deleted after evidence export failure")
 	}
 }
 

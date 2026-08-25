@@ -12,6 +12,8 @@ spec:
       labels: {app: oubliette-controller}
     spec:
       serviceAccountName: oubliette-controller
+      securityContext:
+        fsGroup: 65532
       containers:
         - name: controller
           image: image-registry.openshift-image-registry.svc:5000/oubliette-system/oubliette:demo
@@ -24,6 +26,7 @@ spec:
             - --metrics-profile-generation=$(METRICS_PROFILE_GENERATION)
             - --metrics-isolation-scope=$(METRICS_ISOLATION_SCOPE)
             - --metrics-trust-domain=$(METRICS_TRUST_DOMAIN)
+            - --evidence-store=/var/lib/oubliette/evidence
           env:
             - {name: KUEUE_CLUSTER_QUEUE, value: ""}
             - {name: KUEUE_MANAGED_LABEL, value: kueue.x-k8s.io/managed-namespace}
@@ -33,6 +36,8 @@ spec:
             - {name: METRICS_TRUST_DOMAIN, value: ""}
           ports:
             - {name: health, containerPort: 8081}
+          volumeMounts:
+            - {name: evidence-store, mountPath: /var/lib/oubliette/evidence}
           resources:
             requests: {cpu: 100m, memory: 256Mi}
             limits: {cpu: "2", memory: 1Gi}
@@ -42,6 +47,21 @@ spec:
             runAsNonRoot: true
           readinessProbe: {httpGet: {path: /readyz, port: health}}
           livenessProbe: {httpGet: {path: /healthz, port: health}}
+      volumes:
+        - name: evidence-store
+          persistentVolumeClaim:
+            claimName: oubliette-evidence
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oubliette-evidence
+  namespace: oubliette-system
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -117,6 +137,7 @@ spec:
             - {name: ALLOWED_METRICS, value: ""}
           volumeMounts:
             - {name: token-key, mountPath: /var/run/secrets/oubliette-metrics, readOnly: true}
+            - {name: issuer-token, mountPath: /var/run/secrets/oubliette-metrics-issuer, readOnly: true}
           ports:
             - {name: http, containerPort: 8082}
           resources:
@@ -132,6 +153,9 @@ spec:
         - name: token-key
           secret:
             secretName: oubliette-metrics-token-key
+        - name: issuer-token
+          secret:
+            secretName: oubliette-metrics-issuer-token
 ---
 apiVersion: v1
 kind: Service
@@ -139,7 +163,10 @@ metadata:
   name: oubliette-metrics
   namespace: oubliette-system
 spec:
-  type: ClusterIP
+  # The authenticated consumer-owned connector requires a provider-private
+  # LoadBalancer. Operators should apply their platform's internal-LB
+  # annotation in the installation overlay.
+  type: LoadBalancer
   selector: {app: oubliette-metrics}
   ports:
     - {name: http, port: 8082, targetPort: http}
@@ -159,3 +186,11 @@ spec:
             matchExpressions:
               - key: oubliette.tlrmchlsmth.github.io/id
                 operator: Exists
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              oubliette.tlrmchlsmth.github.io/metrics-connector: "true"
+    # External consumer-owned connectors arrive through the private
+    # LoadBalancer and authenticate at the gateway/issuer HTTP boundary.
+    - ports:
+        - {protocol: TCP, port: 8082}

@@ -33,11 +33,34 @@ private Prometheus-compatible upstream, an allowlist, and an HMAC key, and
 delivers the resulting short-lived credential through a resident projection or
 authenticated external connector—not through MCP results.
 
+The metrics Deployment hosts an authenticated issuer at
+`/access/v1/credentials`. A consumer connector authenticates with the separate
+issuer token and requests either `resident` or `external` placement; the
+audience-bound response is delivered outside the lifecycle MCP transcript. The
+installation Service is a LoadBalancer so an external connector can reach both
+the issuer and gateway. Installation overlays must make that load balancer
+private using the platform-specific annotation.
+
 The gateway parses and scopes PromQL and metadata selectors, filters sensitive
 labels, enforces time, sample, concurrency, and rate budgets, and revalidates
 the Oubliette lifecycle on every request. `evidence-export` requires the
 portable ADR-0010 provenance set and writes a content-addressed immutable bundle
 outside the derived namespace.
+
+Operator-authoritative benchmark collectors hand off each completed run in an
+immutable ConfigMap labeled
+`evidence.oubliette.tlrmchlsmth.github.io/pending-run=true`; its `bundle.json`
+contains the run metadata and artifacts. The lifecycle controller exports every
+pending bundle to its operator-owned evidence PVC during reconciliation and
+again as a mandatory finalizer step. A failed export blocks vCluster and
+namespace deletion.
+
+Required JSON artifacts use provenance-specific top-level fields: `admitted`
+or `workloads` for Kueue, `inputs`, `results`, `collector`, `objects` for
+lineage, `queries`, `samples`, `pods`, `profiles`, `policy`, `spec`, `inventory`,
+and `components`. Transport proof must contain both `configuration` and
+`runtime`; rendered manifests must contain a Kubernetes `kind` and `metadata`.
+Empty placeholders are rejected.
 
 ## Governance
 

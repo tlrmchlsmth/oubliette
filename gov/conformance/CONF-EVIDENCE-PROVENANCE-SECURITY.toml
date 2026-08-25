@@ -1,0 +1,14 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-EVIDENCE-PROVENANCE-SECURITY"
+title = "Evidence requires substantive provenance content"
+
+[case]
+path = "internal/evidence/bundle_test.go"
+selector = "TestBuildRunBundleRejectsEmptyRequiredArtifact"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-OBSERVABILITY"
+version = "0.1.0"

@@ -7,6 +7,7 @@ import (
 
 	oubv1 "github.com/tlrmchlsmth/oubliette/api/v1alpha1"
 	oubcontroller "github.com/tlrmchlsmth/oubliette/internal/controller"
+	"github.com/tlrmchlsmth/oubliette/internal/evidence"
 	"github.com/tlrmchlsmth/oubliette/internal/profile"
 	"github.com/tlrmchlsmth/oubliette/internal/vcluster"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +32,7 @@ func main() {
 	var metricsTrustDomain string
 	var metricsServiceNamespace string
 	var metricsServiceName string
+	var evidenceStore string
 	flag.StringVar(&chartPath, "vcluster-chart", "/charts/vcluster-0.36.1.tgz", "path to the pinned vCluster chart")
 	flag.BoolVar(&leaderElect, "leader-elect", true, "enable leader election")
 	flag.DurationVar(&tombstoneRetention, "tombstone-retention", time.Hour, "retention for completed TTL tombstones")
@@ -43,6 +45,7 @@ func main() {
 	flag.StringVar(&metricsTrustDomain, "metrics-trust-domain", "", "operator-approved metrics trust domain")
 	flag.StringVar(&metricsServiceNamespace, "metrics-service-namespace", "oubliette-system", "namespace containing the private metrics query gateway")
 	flag.StringVar(&metricsServiceName, "metrics-service-name", "oubliette-metrics", "Service name of the private metrics query gateway")
+	flag.StringVar(&evidenceStore, "evidence-store", "/var/lib/oubliette/evidence", "operator-owned directory for durable evidence bundles")
 	opts := zap.Options{Development: false}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -71,6 +74,7 @@ func main() {
 		panic(err)
 	}
 	helmManager := &vcluster.HelmManager{ChartPath: chartPath, Client: mgr.GetClient()}
+	evidenceExporter := evidence.ConfigMapExporter{Client: mgr.GetClient(), Store: evidence.DirectoryStore{Root: evidenceStore}}
 	if err := (&oubcontroller.OublietteReconciler{
 		Client:                  mgr.GetClient(),
 		Scheme:                  mgr.GetScheme(),
@@ -82,6 +86,7 @@ func main() {
 		MetricsProfile:          metricsProfile,
 		MetricsServiceNamespace: metricsServiceNamespace,
 		MetricsServiceName:      metricsServiceName,
+		EvidenceExporter:        evidenceExporter,
 	}).SetupWithManager(mgr); err != nil {
 		panic(err)
 	}

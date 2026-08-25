@@ -1,0 +1,18 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-EVIDENCE-EXPORT-BEFORE-TEARDOWN"
+title = "Evidence exports before teardown"
+
+[case]
+path = "internal/controller/oubliette_controller_test.go"
+selector = "TestFinalizeExportsEvidenceBeforeDeletingSources"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-LIFECYCLE"
+version = "0.1.0"
+
+[[case.requirements]]
+ref = "RFC-0001:C-OBSERVABILITY"
+version = "0.1.0"

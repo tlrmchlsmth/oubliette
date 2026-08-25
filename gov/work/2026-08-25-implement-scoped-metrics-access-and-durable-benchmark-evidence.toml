@@ -69,4 +69,7 @@ status = "done"
 category = "chore"
 
 [verification]
-required_guards = ["GUARD-GOVCTL-REPOSITORY-VALIDATION"]
+required_guards = [
+    "GUARD-GOVCTL-REPOSITORY-VALIDATION",
+    "GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE",
+]
