@@ -93,12 +93,12 @@ if kubectl --kubeconfig="$TMP_DIR/host-denial.kubeconfig" get namespaces >/dev/n
   exit 1
 fi
 
-kubectl --kubeconfig="$TMP_DIR/agent.kubeconfig" run demo-workload --image="$PAUSE_IMAGE" --restart=Never --overrides="{\"spec\":{\"containers\":[{\"name\":\"demo-workload\",\"image\":\"$PAUSE_IMAGE\",\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\",\"ephemeral-storage\":\"10Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\",\"ephemeral-storage\":\"100Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]}}}]}}" >/dev/null
+kubectl --kubeconfig="$TMP_DIR/agent.kubeconfig" run demo-workload --image="$PAUSE_IMAGE" --restart=Never --labels=kueue.x-k8s.io/queue-name=oubliette --overrides="{\"spec\":{\"containers\":[{\"name\":\"demo-workload\",\"image\":\"$PAUSE_IMAGE\",\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\",\"ephemeral-storage\":\"10Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\",\"ephemeral-storage\":\"100Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]}}}]}}" >/dev/null
 kubectl --kubeconfig="$TMP_DIR/agent.kubeconfig" wait --for=condition=Ready pod/demo-workload --timeout=180s
 HOST_POD=$(kubectl --context "$CONTEXT" -n "$HOST_NAMESPACE" get pods -l "vcluster.loft.sh/managed-by=$EXPLICIT_NAME" -o jsonpath='{.items[?(@.metadata.annotations.vcluster\.loft\.sh/namespace=="default")].metadata.name}')
 test -n "$HOST_POD"
 
-kubectl --kubeconfig="$TMP_DIR/agent.kubeconfig" run forbidden-privileged --image="$PAUSE_IMAGE" --restart=Never --privileged --overrides="{\"spec\":{\"containers\":[{\"name\":\"forbidden-privileged\",\"image\":\"$PAUSE_IMAGE\",\"securityContext\":{\"privileged\":true},\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\",\"ephemeral-storage\":\"10Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\",\"ephemeral-storage\":\"100Mi\"}}}]}}" >/dev/null
+kubectl --kubeconfig="$TMP_DIR/agent.kubeconfig" run forbidden-privileged --image="$PAUSE_IMAGE" --restart=Never --privileged --labels=kueue.x-k8s.io/queue-name=oubliette --overrides="{\"spec\":{\"containers\":[{\"name\":\"forbidden-privileged\",\"image\":\"$PAUSE_IMAGE\",\"securityContext\":{\"privileged\":true},\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\",\"ephemeral-storage\":\"10Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\",\"ephemeral-storage\":\"100Mi\"}}}]}}" >/dev/null
 sleep 8
 ! kubectl --context "$CONTEXT" -n "$HOST_NAMESPACE" get pods -l "vcluster.loft.sh/managed-by=$EXPLICIT_NAME" -o name | rg -q forbidden-privileged
 kubectl --context "$CONTEXT" -n "$HOST_NAMESPACE" logs "deployment/$EXPLICIT_NAME" --tail=1200 | rg 'forbidden-privileged.*forbidden' > "$EVIDENCE_DIR/admission.txt"

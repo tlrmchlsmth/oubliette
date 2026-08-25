@@ -1,0 +1,54 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-08-25-002"
+title = "Implement and validate host Kueue admission across vCluster sync"
+status = "done"
+created = "2026-08-25"
+started = "2026-08-25"
+completed = "2026-08-25"
+refs = [
+    "RFC-0001:C-RESOURCE-BOUNDS",
+    "ADR-0009",
+]
+tags = [
+    "kueue",
+    "vcluster",
+    "scheduling",
+]
+
+[content]
+description = "Implement the [[ADR-0009]] host-authoritative queue contract and validate its highest-risk behavior on Pirate. Oubliette must create trusted host queue resources, force queue admission through a fixed non-default LocalQueue, preserve virtual API isolation, and capture evidence for all-or-nothing pod-group admission. Static capacity remains the safe fallback if Pirate lacks Kueue or the sync boundary does not preserve required mutations."
+
+[[content.acceptance_criteria]]
+text = "The controller labels each managed host namespace for Kueue, verifies the configured host ClusterQueue, and owns a fixed non-default LocalQueue named oubliette bound to it."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Host admission rejects synchronized pods without the exact fixed Oubliette queue label while leaving vCluster control-plane pods outside Kueue."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Unit tests cover queue resource derivation, controller ownership, missing-ClusterQueue failure, and the static-capacity fallback."
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "A Pirate spike proves whether two synchronized pods remain gated until one host Kueue Workload is admitted and then start as one group."
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "The Pirate spike records preemption or deletion reflection and syncer-restart behavior, or records a concrete incompatibility and leaves static capacity as the enforced fallback."
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "A governed Kueue conformance record and reproducible script capture redacted evidence, and govctl validation passes."
+status = "done"
+category = "chore"
+
+[verification]
+required_guards = ["GUARD-GOVCTL-REPOSITORY-VALIDATION"]

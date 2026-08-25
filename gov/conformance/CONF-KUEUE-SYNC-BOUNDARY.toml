@@ -1,0 +1,19 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-KUEUE-SYNC-BOUNDARY"
+title = "Pirate host Kueue admission across vCluster sync"
+tags = ["kueue", "scheduling", "security", "vcluster"]
+
+[case]
+path = "scripts/pirate-kueue-e2e.sh"
+selector = "kueue-sync-boundary"
+guards = ["GUARD-GOVCTL-REPOSITORY-VALIDATION"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-RESOURCE-BOUNDS"
+version = "0.1.0"
+
+[[case.requirements]]
+ref = "RFC-0001:C-HOST-ENFORCEMENT"
+version = "0.1.0"

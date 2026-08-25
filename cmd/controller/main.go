@@ -21,9 +21,15 @@ func main() {
 	var chartPath string
 	var leaderElect bool
 	var tombstoneRetention time.Duration
+	var kueueClusterQueue string
+	var kueueManagedLabel string
+	var kueueManagedValue string
 	flag.StringVar(&chartPath, "vcluster-chart", "/charts/vcluster-0.36.1.tgz", "path to the pinned vCluster chart")
 	flag.BoolVar(&leaderElect, "leader-elect", true, "enable leader election")
 	flag.DurationVar(&tombstoneRetention, "tombstone-retention", time.Hour, "retention for completed TTL tombstones")
+	flag.StringVar(&kueueClusterQueue, "kueue-cluster-queue", "", "host ClusterQueue for Oubliette LocalQueues; empty uses static capacity")
+	flag.StringVar(&kueueManagedLabel, "kueue-managed-label", "kueue.x-k8s.io/managed-namespace", "namespace label key selected by host Kueue")
+	flag.StringVar(&kueueManagedValue, "kueue-managed-value", "true", "namespace label value selected by host Kueue")
 	opts := zap.Options{Development: false}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -42,7 +48,15 @@ func main() {
 		panic(err)
 	}
 	helmManager := &vcluster.HelmManager{ChartPath: chartPath, Client: mgr.GetClient()}
-	if err := (&oubcontroller.OublietteReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), VCluster: helmManager, TombstoneRetention: tombstoneRetention}).SetupWithManager(mgr); err != nil {
+	if err := (&oubcontroller.OublietteReconciler{
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		VCluster:           helmManager,
+		TombstoneRetention: tombstoneRetention,
+		KueueClusterQueue:  kueueClusterQueue,
+		KueueManagedLabel:  kueueManagedLabel,
+		KueueManagedValue:  kueueManagedValue,
+	}).SetupWithManager(mgr); err != nil {
 		panic(err)
 	}
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

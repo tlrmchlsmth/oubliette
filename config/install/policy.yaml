@@ -12,6 +12,10 @@ spec:
         resources: ["pods"]
         scope: Namespaced
   validations:
+    - expression: "!has(object.metadata.labels) || !('vcluster.loft.sh/managed-by' in object.metadata.labels) || (('kueue.x-k8s.io/queue-name' in object.metadata.labels) && object.metadata.labels['kueue.x-k8s.io/queue-name'] == 'oubliette')"
+      message: "Oubliette workloads must use the fixed host Kueue LocalQueue"
+    - expression: "request.operation != 'UPDATE' || !has(oldObject.spec.schedulingGates) || !oldObject.spec.schedulingGates.exists(g, g.name == 'kueue.x-k8s.io/admission') || (has(object.spec.schedulingGates) && object.spec.schedulingGates.exists(g, g.name == 'kueue.x-k8s.io/admission')) || request.userInfo.username.endsWith(':kueue-controller-manager')"
+      message: "Only the host Kueue controller may remove the admission scheduling gate"
     - expression: "!has(object.metadata.labels) || !('vcluster.loft.sh/managed-by' in object.metadata.labels) || ((!has(object.spec.hostNetwork) || !object.spec.hostNetwork) && (!has(object.spec.hostPID) || !object.spec.hostPID) && (!has(object.spec.hostIPC) || !object.spec.hostIPC))"
       message: "Oubliette workloads may not use host network, PID, or IPC namespaces"
     - expression: "!has(object.metadata.labels) || !('vcluster.loft.sh/managed-by' in object.metadata.labels) || !has(object.spec.volumes) || object.spec.volumes.all(v, !has(v.hostPath))"
