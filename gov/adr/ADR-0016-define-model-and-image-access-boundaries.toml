@@ -1,0 +1,36 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0016"
+title = "Define model and image access boundaries"
+status = "proposed"
+date = "2026-08-25"
+refs = [
+    "RFC-0001",
+    "ADR-0006",
+    "ADR-0017",
+    "ADR-0018",
+]
+
+[content]
+context = "Large model startup requires efficient access to model weights, and workloads also need container images. A shared read-only model cache can be a performance necessity but creates a cross-Oubliette metadata, integrity, and side-channel surface; writable shared caches also permit poisoning. Registry and model credentials create additional tenant and teardown obligations. Decision criteria: startup throughput, immutable artifact identity and provenance, prevention of cross-clique reads and writes beyond explicit sharing, cache-poisoning resistance, credential scope, quota accounting, offline operation, and complete teardown."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "The decision will define whether model bytes are a deliberately shared host service or tenant storage, how digests and access policy are enforced, which credentials may enter an Oubliette, and what cache state survives its deletion."
+
+[[content.alternatives]]
+text = "Mount an operator-populated content-addressed model cache read-only and use scoped registry pull credentials"
+status = "considered"
+
+[[content.alternatives]]
+text = "Give each Oubliette private persistent storage and download all models and images through allowed egress"
+status = "considered"
+
+[[content.alternatives]]
+text = "Expose models through an authenticated host cache service without mounting shared storage"
+status = "considered"
+
+[[content.alternatives]]
+text = "Allow workloads to mount a shared writable model and image cache"
+status = "considered"

@@ -1,0 +1,35 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0014"
+title = "Define virtual Kubernetes API exposure"
+status = "proposed"
+date = "2026-08-25"
+refs = [
+    "RFC-0001",
+    "ADR-0007",
+    "ADR-0012",
+]
+
+[content]
+context = "External agents need access to the virtual Kubernetes API and an optional per-Oubliette Kubernetes MCP server, while resident agents can use cluster-local endpoints. Placing the Kubernetes MCP server inside the Oubliette contains its virtual cluster-admin credential but does not remove the need for private connectivity from an external consumer sandbox. Decision criteria: no public endpoint by default, separation from the host API, support for OpenShell and consumer-owned connectors, bootstrap and break-glass recovery, revocation with lifecycle teardown, workload-plane failure behavior, and independently auditable authentication."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "The selected exposure model will define consumer adapter responsibilities, endpoint discovery, TLS identity, credential delivery, failure recovery, and whether the per-Oubliette Kubernetes MCP server is mandatory or profile-controlled."
+
+[[content.alternatives]]
+text = "Keep virtual API and in-Oubliette Kubernetes MCP endpoints private and require a consumer-owned authenticated connector"
+status = "considered"
+
+[[content.alternatives]]
+text = "Create a dedicated authenticated ingress endpoint for each Oubliette"
+status = "considered"
+
+[[content.alternatives]]
+text = "Permit only resident agents and require every external consumer to deploy an agent relay inside the Oubliette"
+status = "considered"
+
+[[content.alternatives]]
+text = "Expose the virtual API through a shared public gateway"
+status = "considered"

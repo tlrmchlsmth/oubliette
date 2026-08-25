@@ -8,7 +8,7 @@ date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
-context = "A virtual cluster administrator can create arbitrary namespaced workloads and cluster-scoped virtual objects. Only a bounded subset may produce host objects, and every synchronized workload must remain subject to host controls that the tenant cannot mutate."
+context = "A virtual cluster administrator can create arbitrary namespaced workloads and cluster-scoped virtual objects. Only a bounded subset may produce host objects, and every synchronized workload must remain subject to host controls that the tenant cannot mutate. Decision criteria: least host authority, resistance to tenant bypass, compatibility with llm-d dependencies, explicit object and field coverage, upgrade-testability, and failure behavior when synchronization or admission is unavailable."
 decision = """
 Describe the decision that was made.
 What is the change that we're proposing and/or doing?"""

@@ -36,8 +36,10 @@ Rendered RFC documentation is published under `docs/rfc/`.
   establish govctl governance, the cluster-scoped API and expiry model,
   consumer-owned agent sandboxes, MCP lifecycle access, and a Go stack using
   controller-runtime plus the official MCP SDK.
-- ADR-0002 is superseded; ADR-0004 through ADR-0010 remain proposed and
-  alternatives-first.
+- ADR-0002 is superseded; ADR-0004 through ADR-0010 and ADR-0014 through
+  ADR-0018 remain proposed, alternatives-first, and include explicit decision
+  criteria.
 - vCluster provisioning and the host synchronization, admission, resource,
-  networking, scheduling, credential-delivery, and observability contracts
-  remain to be accepted before their implementation work is authorized.
+  networking, scheduling, credential-delivery, API-exposure, artifact-access,
+  storage, egress, and observability contracts remain to be accepted before
+  their implementation work is authorized.

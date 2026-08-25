@@ -8,7 +8,7 @@ date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
-context = "Host capacity must eventually be shared fairly across cliques and multinode deployments require gang semantics. It is not yet established which Kueue objects survive or should cross the vCluster sync boundary."
+context = "Host capacity must eventually be shared fairly across cliques and multinode deployments require gang semantics. It is not yet established which Kueue objects survive or should cross the vCluster sync boundary. Decision criteria: correct all-or-nothing admission across the sync boundary, quota fairness, topology awareness, preemption semantics, tenant-visible status, deadlock avoidance, and behavior under controller or syncer failure."
 decision = """
 Describe the decision that was made.
 What is the change that we're proposing and/or doing?"""

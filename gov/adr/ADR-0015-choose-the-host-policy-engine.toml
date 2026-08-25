@@ -1,0 +1,34 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0015"
+title = "Choose the host policy engine"
+status = "proposed"
+date = "2026-08-25"
+refs = [
+    "RFC-0001",
+    "ADR-0005",
+]
+
+[content]
+context = "Host admission is an independent security boundary for every object synchronized from an untrusted virtual cluster. The design names Kyverno and Kubernetes ValidatingAdmissionPolicy as candidates but does not select an authoritative engine or divide validation and mutation responsibilities. Decision criteria: enforcement during dependency failure, resistance to tenant bypass, coverage of required validation and mutation, policy testability and rollout, Kubernetes version support, audit visibility, and host operational burden."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "The choice will determine host prerequisites, fail-closed behavior, policy packaging, exception ownership, upgrade testing, and how required defaults such as RuntimeClass are applied."
+
+[[content.alternatives]]
+text = "Use native ValidatingAdmissionPolicy for validation and controller-owned defaults for mutation"
+status = "considered"
+
+[[content.alternatives]]
+text = "Use Kyverno as the authoritative validation and mutation engine"
+status = "considered"
+
+[[content.alternatives]]
+text = "Use native validation for security invariants and Kyverno only where mutation or richer policy is required"
+status = "considered"
+
+[[content.alternatives]]
+text = "Rely on policy installed only inside each virtual cluster"
+status = "considered"

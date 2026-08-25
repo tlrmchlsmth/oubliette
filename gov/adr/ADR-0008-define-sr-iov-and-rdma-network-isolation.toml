@@ -8,7 +8,7 @@ date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
-context = "Kubernetes NetworkPolicy does not constrain the RDMA fabric. The first milestone needs two pods to exchange KV data through SR-IOV while preventing accidental or hostile cross-clique fabric access."
+context = "Kubernetes NetworkPolicy does not constrain the RDMA fabric. The first milestone needs two pods to exchange KV data through SR-IOV while preventing accidental or hostile cross-clique fabric access. Decision criteria: independently enforceable cross-clique isolation, compatibility with the target fabric and KV transport, minimum allocatable hardware unit, provable transport selection, exhaustion behavior, and operational recovery from leaked allocations."
 decision = """
 Describe the decision that was made.
 What is the change that we're proposing and/or doing?"""

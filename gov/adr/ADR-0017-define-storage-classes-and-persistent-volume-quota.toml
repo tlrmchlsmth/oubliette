@@ -1,0 +1,34 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0017"
+title = "Define storage classes and persistent volume quota"
+status = "proposed"
+date = "2026-08-25"
+refs = [
+    "RFC-0001",
+    "ADR-0006",
+]
+
+[content]
+context = "Agents with virtual cluster-admin can create PVCs, but the host must control provisioners, topology, capacity, reclaim behavior, and total persistent storage. StorageClass and quota behavior also affects model access, benchmark artifacts, and whether TTL teardown actually forgets durable data. Decision criteria: vCluster synchronization support, hard capacity and object quota, topology correctness, controlled StorageClass exposure, reclaim and deletion guarantees, expansion and snapshot semantics, and deterministic behavior at quota exhaustion."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "The choice will define the tenant-visible storage API, profile quota fields, host StorageClass mapping, allowed volume features, cleanup verification, and which persistent artifacts may outlive an Oubliette."
+
+[[content.alternatives]]
+text = "Expose operator-defined virtual StorageClasses mapped to allowlisted host classes with per-profile PVC quota"
+status = "considered"
+
+[[content.alternatives]]
+text = "Expose selected host StorageClasses directly and rely on host ResourceQuota"
+status = "considered"
+
+[[content.alternatives]]
+text = "Support only ephemeral volumes and prohibit synchronized PVCs"
+status = "considered"
+
+[[content.alternatives]]
+text = "Allocate one pre-provisioned host volume per Oubliette tier"
+status = "considered"

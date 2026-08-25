@@ -8,7 +8,7 @@ date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
-context = "Clique resource limits vary by environment and hardware, but agents must not select host resource names, synchronization rules, or policy exceptions. The initial product language proposes stub and gpu tiers."
+context = "Clique resource limits vary by environment and hardware, but agents must not select host resource names, synchronization rules, or policy exceptions. The initial product language proposes stub and gpu tiers. Decision criteria: a stable tenant-facing API, operator control of physical resource names, hard quota enforceability, auditable profile changes, safe hardware evolution, and deterministic admission feedback."
 decision = """
 Describe the decision that was made.
 What is the change that we're proposing and/or doing?"""

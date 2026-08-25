@@ -8,7 +8,7 @@ date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
-context = "Open-source vCluster is primarily distributed as a Helm chart, while platform APIs and generic Helm release controllers introduce different dependencies and lifecycle contracts. Oubliette needs declarative reconciliation without coupling to undocumented chart internals."
+context = "Open-source vCluster is primarily distributed as a Helm chart, while platform APIs and generic Helm release controllers introduce different dependencies and lifecycle contracts. Oubliette needs declarative reconciliation without coupling to undocumented chart internals. Decision criteria: upstream supportability, dependency footprint, declarative convergence and status fidelity, upgrade and rollback ownership, air-gapped operation, and complete cascading teardown."
 decision = """
 Describe the decision that was made.
 What is the change that we're proposing and/or doing?"""
