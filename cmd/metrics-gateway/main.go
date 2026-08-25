@@ -11,6 +11,7 @@ import (
 	"time"
 
 	oubv1 "github.com/tlrmchlsmth/oubliette/api/v1alpha1"
+	"github.com/tlrmchlsmth/oubliette/internal/metricsaccess"
 	"github.com/tlrmchlsmth/oubliette/internal/metricsgateway"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -19,7 +20,7 @@ import (
 )
 
 func main() {
-	var listen, upstream, profileGeneration, allowedMetrics, sensitiveLabels, keyFile, upstreamTokenFile string
+	var listen, upstream, profileGeneration, allowedMetrics, sensitiveLabels, keyFile, issuerTokenFile, upstreamTokenFile string
 	var maxLookback, minStep, maxExecutionTime, maxTokenTTL time.Duration
 	var maxSamples, maxConcurrency, maxRequestsPerMinute int
 	var maxResponseBytes int64
@@ -29,6 +30,7 @@ func main() {
 	flag.StringVar(&allowedMetrics, "allowed-metrics", "", "comma-separated metric allowlist")
 	flag.StringVar(&sensitiveLabels, "sensitive-labels", "node,host_ip,pod_ip", "comma-separated labels removed from agent results")
 	flag.StringVar(&keyFile, "token-key-file", "/var/run/secrets/oubliette-metrics/hmac-key", "file containing the metrics token HMAC key")
+	flag.StringVar(&issuerTokenFile, "issuer-token-file", "/var/run/secrets/oubliette-metrics-issuer/token", "file containing the consumer connector authentication token")
 	flag.StringVar(&upstreamTokenFile, "prometheus-token-file", "", "optional file containing an upstream Prometheus bearer token")
 	flag.DurationVar(&maxLookback, "max-lookback", time.Hour, "maximum query lookback and range")
 	flag.DurationVar(&minStep, "min-step", 15*time.Second, "minimum range query step")
@@ -47,6 +49,14 @@ func main() {
 	key = []byte(strings.TrimSpace(string(key)))
 	if len(key) < 32 {
 		log.Fatal("metrics token key must contain at least 32 bytes")
+	}
+	issuerToken, err := os.ReadFile(issuerTokenFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	issuerToken = []byte(strings.TrimSpace(string(issuerToken)))
+	if len(issuerToken) < 32 {
+		log.Fatal("metrics issuer authentication token must contain at least 32 bytes")
 	}
 	metrics := splitList(allowedMetrics)
 	if upstream == "" || profileGeneration == "" || len(metrics) == 0 {
@@ -98,6 +108,10 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/", gateway)
+	mux.Handle("/access/v1/credentials", metricsaccess.HTTPHandler{
+		Issuer:      metricsaccess.Issuer{Client: kube, Codec: metricsgateway.TokenCodec{Key: key, Audience: "oubliette-metrics", MaxTTL: maxTokenTTL}},
+		BearerToken: string(issuerToken),
+	})
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	server := &http.Server{Addr: listen, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("oubliette metrics gateway listening on %s", listen)

@@ -32,6 +32,9 @@ func (s DirectoryStore) Put(ctx context.Context, bundle Bundle) (string, error) 
 	if err := os.MkdirAll(s.Root, 0o700); err != nil {
 		return "", err
 	}
+	if err := reserveRunID(s.Root, bundle.Manifest.Run.RunID, digest); err != nil {
+		return "", err
+	}
 	target := filepath.Join(s.Root, digest)
 	if existing, err := os.ReadFile(filepath.Join(target, "manifest.json")); err == nil {
 		if bytes.Equal(existing, bundle.ManifestBytes) {
@@ -68,4 +71,34 @@ func (s DirectoryStore) Put(ctx context.Context, bundle Bundle) (string, error) 
 		return "", fmt.Errorf("publish evidence bundle: %w", err)
 	}
 	return target, nil
+}
+
+func reserveRunID(root, runID, digest string) error {
+	if !runIDPattern.MatchString(runID) {
+		return errors.New("evidence run ID is invalid")
+	}
+	directory := filepath.Join(root, ".run-ids")
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return err
+	}
+	index := filepath.Join(directory, runID)
+	file, err := os.OpenFile(index, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err == nil {
+		if _, writeErr := file.WriteString(digest + "\n"); writeErr != nil {
+			_ = file.Close()
+			return writeErr
+		}
+		return file.Close()
+	}
+	if !errors.Is(err, os.ErrExist) {
+		return err
+	}
+	existing, readErr := os.ReadFile(index)
+	if readErr != nil {
+		return readErr
+	}
+	if strings.TrimSpace(string(existing)) != digest {
+		return fmt.Errorf("evidence run ID %q already identifies a different bundle", runID)
+	}
+	return nil
 }

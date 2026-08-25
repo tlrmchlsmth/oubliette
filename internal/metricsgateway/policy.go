@@ -99,6 +99,28 @@ func (p Policy) Rewrite(query, oubliette, trustDomain string) (string, error) {
 				rewriteErr = fmt.Errorf("function %s is not allowed by label policy", typed.Func.Name)
 				return rewriteErr
 			}
+		case *parser.AggregateExpr:
+			for _, label := range typed.Grouping {
+				if p.Sensitive(label) {
+					rewriteErr = fmt.Errorf("aggregation may not group by sensitive label %q", label)
+					return rewriteErr
+				}
+			}
+		case *parser.BinaryExpr:
+			if typed.VectorMatching == nil {
+				break
+			}
+			for _, label := range append(append([]string(nil), typed.VectorMatching.MatchingLabels...), typed.VectorMatching.Include...) {
+				if p.Sensitive(label) {
+					rewriteErr = fmt.Errorf("binary expression may not match or include sensitive label %q", label)
+					return rewriteErr
+				}
+			}
+		case *parser.StringLiteral:
+			if p.Sensitive(typed.Val) {
+				rewriteErr = fmt.Errorf("function may not reference sensitive label %q", typed.Val)
+				return rewriteErr
+			}
 		}
 		return nil
 	})

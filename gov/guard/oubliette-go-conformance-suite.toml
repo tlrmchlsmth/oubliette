@@ -1,0 +1,13 @@
+#:schema ../schema/guard.schema.json
+
+[govctl]
+id = "GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"
+title = "Oubliette Go conformance suite"
+refs = [
+    "RFC-0001:C-OBSERVABILITY",
+    "RFC-0001:C-LIFECYCLE",
+]
+
+[check]
+command = "env GOCACHE=/tmp/oubliette-go-cache go test ./..."
+timeout_secs = 300

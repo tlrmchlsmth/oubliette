@@ -32,6 +32,11 @@ type OublietteReconciler struct {
 	MetricsProfile          profile.MetricsProfile
 	MetricsServiceNamespace string
 	MetricsServiceName      string
+	EvidenceExporter        EvidenceExporter
+}
+
+type EvidenceExporter interface {
+	ExportBeforeTeardown(context.Context, *oubv1.Oubliette, string) error
 }
 
 func (r *OublietteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -85,6 +90,11 @@ func (r *OublietteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err := r.ensureBoundary(ctx, &obj, p, namespace); err != nil {
 		return r.fail(ctx, &obj, "BoundaryFailed", err)
 	}
+	if r.EvidenceExporter != nil {
+		if err := r.EvidenceExporter.ExportBeforeTeardown(ctx, &obj, namespace); err != nil {
+			return r.fail(ctx, &obj, "EvidenceExportFailed", err)
+		}
+	}
 	if err := r.VCluster.Ensure(ctx, obj.Name, namespace); err != nil {
 		return r.fail(ctx, &obj, "ProvisioningFailed", err)
 	}
@@ -113,7 +123,7 @@ func (r *OublietteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	if ready && metricsReady {
 		remaining := obj.Spec.ExpiresAt.Time.Sub(now)
-		if r.MetricsProfile.Enabled && remaining > 30*time.Second {
+		if (r.MetricsProfile.Enabled || r.EvidenceExporter != nil) && remaining > 30*time.Second {
 			remaining = 30 * time.Second
 		}
 		return ctrl.Result{RequeueAfter: remaining}, nil
@@ -127,6 +137,11 @@ func (r *OublietteReconciler) finalize(ctx context.Context, obj *oubv1.Oubliette
 		apiMeta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{Type: oubv1.ConditionExpiring, Status: metav1.ConditionTrue, Reason: "TTLExpired", Message: "expiry deadline reached", ObservedGeneration: obj.Generation})
 		if err := r.Status().Patch(ctx, obj, client.MergeFrom(base)); err != nil && !apierrors.IsConflict(err) {
 			return ctrl.Result{}, err
+		}
+	}
+	if r.EvidenceExporter != nil {
+		if err := r.EvidenceExporter.ExportBeforeTeardown(ctx, obj, namespace); err != nil {
+			return ctrl.Result{}, fmt.Errorf("export evidence before teardown: %w", err)
 		}
 	}
 	if err := r.VCluster.Delete(ctx, obj.Name, namespace); err != nil {
