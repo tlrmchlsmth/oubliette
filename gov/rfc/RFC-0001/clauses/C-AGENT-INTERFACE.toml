@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-AGENT-INTERFACE"
+title = "Agent lifecycle interface"
+kind = "normative"
+status = "active"
+
+[content]
+text = "Agents MUST manage Oubliette lifecycle through an authenticated MCP interface whose initial operations are create, get, list, renew, and delete. After readiness, agents MUST use the virtual Kubernetes API directly for in-Oubliette operations. The MCP interface MUST NOT proxy the host Kubernetes API, expose host credentials, accept raw host policy controls, or return kubeconfig material in tool results. Consumer integrations MUST deliver virtual-cluster access outside model transcripts."

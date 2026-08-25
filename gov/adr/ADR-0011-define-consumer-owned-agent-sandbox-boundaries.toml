@@ -1,0 +1,32 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0011"
+title = "Define consumer-owned agent sandbox boundaries"
+status = "accepted"
+date = "2026-08-25"
+refs = [
+    "RFC-0001",
+    "ADR-0002",
+]
+
+[content]
+context = "ADR-0002 assumed OpenShell was mandatory for every Oubliette consumer. Crucible is a planned consumer with its agent sandbox already built in, demonstrating that Oubliette must preserve the agent-sandbox boundary without requiring one implementation. OpenShell remains the first-class resident and bootstrap integration."
+decision = "Oubliette requires every model-driven agent to execute within an approved sandbox owned by its consumer, but Oubliette does not require or implement a particular agent sandbox. OpenShell is the first-class integration for resident agents and for external bootstrap agents that use a target Oubliette to develop Oubliette. Crucible may satisfy the same contract with its built-in sandbox. Consumers own agent process isolation, model credentials, and sandbox-local policy; Oubliette owns virtual-cluster lifecycle, policy readiness, access, status, and teardown; vCluster owns virtual API isolation and synchronization; host operators own admission, resource, network, fabric, scheduling, and telemetry enforcement."
+consequences = "Oubliette becomes a sandbox-neutral Kubernetes substrate with a strict consumer contract. OpenShell and Crucible retain ownership of their agent-process isolation and credential handling, adapters can differ, and Oubliette host safety must remain valid even if a consumer sandbox is compromised. Oubliette does not attest that an arbitrary process is an approved agent sandbox; deployment policy and the consumer integration own that assurance."
+
+[[content.alternatives]]
+text = "Require an approved consumer-owned agent sandbox while supporting OpenShell and Crucible integrations"
+status = "accepted"
+
+[[content.alternatives]]
+text = "Require OpenShell for every Oubliette consumer"
+status = "rejected"
+
+[[content.alternatives]]
+text = "Move agent process sandboxing into Oubliette"
+status = "rejected"
+
+[[content.alternatives]]
+text = "Define no agent-sandbox contract and rely only on the host boundary"
+status = "rejected"

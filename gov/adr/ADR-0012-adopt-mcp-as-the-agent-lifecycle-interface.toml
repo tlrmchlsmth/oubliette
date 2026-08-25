@@ -1,0 +1,33 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0012"
+title = "Adopt MCP as the agent lifecycle interface"
+status = "accepted"
+date = "2026-08-25"
+refs = [
+    "RFC-0001",
+    "ADR-0011",
+    "ADR-0007",
+]
+
+[content]
+context = "Agents need a narrow, discoverable lifecycle interface for Oubliettes without receiving host Kubernetes access or losing direct, maximally flexible access to their virtual Kubernetes API. OpenShell, Crucible, humans, and automation may use different integration surfaces over the same authoritative state."
+decision = "Expose authenticated MCP as the agent-facing Oubliette lifecycle interface. The initial tool contract is create, get, list, renew, and delete, with read-only Oubliette state and events eligible for MCP resources. Provisioning is asynchronous: clients poll get initially, with MCP Tasks an optional future optimization. Once ready, an agent uses the virtual Kubernetes API directly rather than an MCP Kubernetes proxy. MCP must never expose the host API, host credentials, raw host policy controls, or kubeconfig material in tool results; the consumer sandbox integration delivers virtual-cluster access."
+consequences = "The agent surface stays small and policy-aware while in-Oubliette Kubernetes remains unrestricted. The MCP server requires caller-scoped authorization, structured idempotent results, auditing, and asynchronous readiness semantics. Consumer integrations must deliver virtual credentials outside MCP transcripts. A native API and CLI may serve non-agent callers over the same lifecycle model."
+
+[[content.alternatives]]
+text = "Use MCP for Oubliette lifecycle and direct virtual Kubernetes access for workload operations"
+status = "accepted"
+
+[[content.alternatives]]
+text = "Proxy every virtual Kubernetes operation through MCP tools"
+status = "rejected"
+
+[[content.alternatives]]
+text = "Give agents direct access to the host Oubliette CRD"
+status = "rejected"
+
+[[content.alternatives]]
+text = "Offer only a human-oriented CLI and require agents to shell out"
+status = "rejected"

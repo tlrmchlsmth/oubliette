@@ -2,9 +2,9 @@
 
 [govctl]
 id = "C-AGENT-RUNTIME"
-title = "OpenShell agent execution modes"
+title = "Consumer-owned agent sandbox"
 kind = "normative"
 status = "active"
 
 [content]
-text = "Every model-driven agent process MUST execute inside an OpenShell sandbox. In normal operation, the OpenShell agent SHOULD run inside the Oubliette it administers. During Oubliette bootstrap and development, an OpenShell-sandboxed developer agent MAY run outside the target Oubliette and use that Oubliette as its disposable development and test cluster. Neither mode may grant the agent host Kubernetes credentials."
+text = "Every model-driven agent process MUST execute inside an approved sandbox owned by its consumer. Oubliette MUST NOT depend on one sandbox implementation, and host safety MUST remain valid if the consumer sandbox is compromised. OpenShell is the first-class resident and bootstrap integration; consumers such as Crucible MAY provide their own sandbox. Neither resident nor external agents may receive host Kubernetes credentials."
