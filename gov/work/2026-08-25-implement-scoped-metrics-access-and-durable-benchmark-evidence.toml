@@ -3,9 +3,10 @@
 [govctl]
 id = "WI-2026-08-25-003"
 title = "Implement scoped metrics access and durable benchmark evidence"
-status = "active"
+status = "done"
 created = "2026-08-25"
 started = "2026-08-25"
+completed = "2026-08-25"
 refs = [
     "RFC-0001:C-AGENT-INTERFACE",
     "RFC-0001:C-OBSERVABILITY",
@@ -39,12 +40,12 @@ category = "security"
 
 [[content.acceptance_criteria]]
 text = "Resident and external consumer integrations receive short-lived audience-bound metrics access outside MCP results and model transcripts; terminal lifecycle revokes that access, and the credential cannot authenticate to host Kubernetes or unrestricted Prometheus APIs."
-status = "pending"
+status = "done"
 category = "security"
 
 [[content.acceptance_criteria]]
 text = "Host collection integration derives Oubliette, profile, role, pod UID, endpoint, and node attribution from trusted discovery, reuses existing GPU telemetry, and blocks measurement until the expected serving and routing targets are present, healthy, and unique."
-status = "pending"
+status = "done"
 category = "added"
 
 [[content.acceptance_criteria]]
@@ -59,7 +60,7 @@ category = "security"
 
 [[content.acceptance_criteria]]
 text = "A supported-cluster end-to-end validation proves scoped agent queries, authoritative target coverage, durable export before teardown, denial of cross-tenant access, metrics credential revocation, and evidence survival after Oubliette deletion; environment-specific harnesses and captured evidence remain outside the repository."
-status = "pending"
+status = "done"
 category = "security"
 
 [[content.acceptance_criteria]]
