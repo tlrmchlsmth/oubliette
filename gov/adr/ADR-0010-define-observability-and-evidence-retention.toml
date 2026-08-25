@@ -1,0 +1,27 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0010"
+title = "Define observability and evidence retention"
+status = "proposed"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "Agents need ordinary in-clique metrics while operators need host GPU telemetry, tenant isolation, exact benchmark windows, and durable proof that results came from the intended workloads and transport."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "This decision determines metric tenancy, label trust, query enforcement, evidence storage, retention cost, and what constitutes a valid benchmark result."
+
+[[content.alternatives]]
+text = "Use host collectors with trusted clique labels and a namespace-enforcing query proxy plus ordinary in-clique scraping"
+status = "considered"
+
+[[content.alternatives]]
+text = "Run a complete independent Prometheus stack inside every virtual cluster"
+status = "considered"
+
+[[content.alternatives]]
+text = "Expose the shared host Prometheus endpoint and rely on client query discipline"
+status = "considered"

@@ -1,0 +1,27 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0003"
+title = "Choose API identity scope and lifecycle semantics"
+status = "proposed"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "The public Kubernetes API identity, CR scope, derived namespace naming, TTL behavior, and terminal observability are difficult to migrate after users create objects. In particular, deleted Kubernetes objects cannot retain a terminal status condition."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "This decision will establish the long-lived API compatibility surface and the distinction between TTL tombstones and explicit deletion."
+
+[[content.alternatives]]
+text = "Use a cluster-scoped Oubliette CR under a GitHub-backed DNS group with controller-retained TTL tombstones"
+status = "considered"
+
+[[content.alternatives]]
+text = "Use a namespaced Oubliette CR in an operator control namespace"
+status = "considered"
+
+[[content.alternatives]]
+text = "Expose only the underlying vCluster release API and keep no Oubliette CR"
+status = "considered"

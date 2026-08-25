@@ -1,0 +1,27 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0002"
+title = "Define OpenShell Oubliette and vCluster ownership boundaries"
+status = "proposed"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "Oubliette combines an agent process sandbox, a tenant Kubernetes control plane, and host execution of GPU workloads. Responsibility must be assigned so a compromise or configuration mistake in one layer does not silently collapse the others."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "The selected boundary will determine credentials, APIs, deployment ownership, failure handling, and which project is authoritative for each security control."
+
+[[content.alternatives]]
+text = "Layer OpenShell process isolation, Oubliette lifecycle policy, vCluster API isolation, and independent host enforcement"
+status = "considered"
+
+[[content.alternatives]]
+text = "Make Oubliette own both the agent process sandbox and virtual cluster"
+status = "considered"
+
+[[content.alternatives]]
+text = "Skip vCluster and grant the agent namespace-scoped host Kubernetes access"
+status = "considered"

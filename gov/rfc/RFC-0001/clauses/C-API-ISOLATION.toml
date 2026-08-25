@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-API-ISOLATION"
+title = "Host API isolation"
+kind = "normative"
+status = "active"
+
+[content]
+text = "An agent MUST authenticate only to its virtual Kubernetes API and MUST NOT receive credentials that authenticate to the host API. Virtual cluster-admin authority MUST NOT grant visibility or mutation of host cluster-scoped resources. Host synchronization MUST be explicitly allowlisted."

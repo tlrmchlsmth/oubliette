@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-PURPOSE"
+title = "Purpose and scope"
+kind = "normative"
+status = "active"
+
+[content]
+text = "Oubliette MUST provision short-lived, agent-scoped Kubernetes control planes whose workloads execute on an operator-controlled host cluster. Each clique MUST have an independently administered virtual API and a dedicated host enforcement boundary."

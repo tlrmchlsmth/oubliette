@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-NON-GOALS"
+title = "Initial non-goals"
+kind = "informative"
+status = "active"
+
+[content]
+text = "Multi-node prefill/decode, WideEP, host Kueue gang scheduling, LWS, JobSet, Gateway API, EPP, and a production DRA path are not required for the first milestone. They remain later decisions or validation tracks."

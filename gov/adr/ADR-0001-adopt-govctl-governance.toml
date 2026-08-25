@@ -1,0 +1,25 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0001"
+title = "Adopt govctl governance"
+status = "accepted"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "Oubliette is a greenfield, security-sensitive infrastructure project intended for substantial agent-assisted development. Its requirements, architectural choices, implementation work, and verification evidence need a durable source of truth from the first commit."
+decision = "Use govctl v0.19.1 as the initial governance harness. Normative behavior lives in RFC clauses, architectural choices live in ADRs, implementation is authorized by work items, and completion is gated by executable guards. The gov/ TOML artifacts are authoritative; rendered Markdown is derived."
+consequences = "Design work becomes explicit, reviewable, and traceable before code is written. Contributors must maintain artifact references and lifecycle state, and govctl becomes a required development tool whose schema upgrades must be deliberate."
+
+[[content.alternatives]]
+text = "Use govctl as the repository governance harness"
+status = "accepted"
+
+[[content.alternatives]]
+text = "Maintain informal Markdown ADRs without lifecycle enforcement"
+status = "rejected"
+
+[[content.alternatives]]
+text = "Begin implementation and document decisions afterward"
+status = "rejected"

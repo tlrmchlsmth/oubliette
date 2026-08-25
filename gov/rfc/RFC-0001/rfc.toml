@@ -1,0 +1,53 @@
+#:schema ../../schema/rfc.schema.json
+
+[govctl]
+id = "RFC-0001"
+title = "Disposable agent Kubernetes cliques"
+version = "0.1.0"
+status = "draft"
+phase = "spec"
+owners = ["@tlrmchlsmth"]
+created = "2026-08-25"
+
+[[sections]]
+title = "Summary"
+clauses = ["clauses/C-SUMMARY.toml"]
+
+[[sections]]
+title = "Specification"
+
+[[sections]]
+title = "Scope"
+clauses = [
+    "clauses/C-PURPOSE.toml",
+    "clauses/C-NON-GOALS.toml",
+]
+
+[[sections]]
+title = "Security"
+clauses = [
+    "clauses/C-API-ISOLATION.toml",
+    "clauses/C-HOST-ENFORCEMENT.toml",
+    "clauses/C-NETWORK-ISOLATION.toml",
+]
+
+[[sections]]
+title = "Lifecycle"
+clauses = ["clauses/C-LIFECYCLE.toml"]
+
+[[sections]]
+title = "Scheduling"
+clauses = ["clauses/C-RESOURCE-BOUNDS.toml"]
+
+[[sections]]
+title = "Observability"
+clauses = ["clauses/C-OBSERVABILITY.toml"]
+
+[[sections]]
+title = "Milestones"
+clauses = ["clauses/C-MILESTONE-ONE.toml"]
+
+[[changelog]]
+version = "0.1.0"
+date = "2026-08-25"
+notes = "Initial draft"

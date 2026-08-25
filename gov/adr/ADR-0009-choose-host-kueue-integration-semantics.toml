@@ -1,0 +1,31 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0009"
+title = "Choose host Kueue integration semantics"
+status = "proposed"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "Host capacity must eventually be shared fairly across cliques and multinode deployments require gang semantics. It is not yet established which Kueue objects survive or should cross the vCluster sync boundary."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "The chosen ownership model will control admission, queue visibility, preemption, topology, and whether a virtually accepted workload can deadlock on partial host placement."
+
+[[content.alternatives]]
+text = "Make host Kueue authoritative and synchronize an explicitly supported workload or pod-group contract"
+status = "considered"
+
+[[content.alternatives]]
+text = "Run Kueue independently inside each virtual cluster and rely on the host scheduler"
+status = "considered"
+
+[[content.alternatives]]
+text = "Admit whole cliques through an external allocator before creating their vClusters"
+status = "considered"
+
+[[content.alternatives]]
+text = "Defer queue integration and reserve static capacity for the first milestone"
+status = "considered"

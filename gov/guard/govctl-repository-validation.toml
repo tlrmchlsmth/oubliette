@@ -1,0 +1,9 @@
+#:schema ../schema/guard.schema.json
+
+[govctl]
+id = "GUARD-GOVCTL-REPOSITORY-VALIDATION"
+title = "govctl repository validation"
+
+[check]
+command = "govctl check"
+timeout_secs = 300

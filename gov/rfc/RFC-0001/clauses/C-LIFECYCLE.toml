@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-LIFECYCLE"
+title = "Bounded lifecycle and cleanup"
+kind = "normative"
+status = "active"
+
+[content]
+text = "Host quota, admission, and network controls MUST exist before an agent receives a virtual kubeconfig. TTL expiry, explicit removal, or agent completion MUST trigger idempotent teardown of the virtual control plane, dedicated host namespace, synchronized objects, credentials, and storage. Cleanup completion MUST be externally observable even when the agent does not cooperate."

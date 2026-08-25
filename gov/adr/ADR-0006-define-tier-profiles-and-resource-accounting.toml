@@ -1,0 +1,27 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0006"
+title = "Define tier profiles and resource accounting"
+status = "proposed"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "Clique resource limits vary by environment and hardware, but agents must not select host resource names, synchronization rules, or policy exceptions. The initial product language proposes stub and gpu tiers."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "The selected model determines API stability, operator configurability, quota generation, admission inputs, and how new hardware profiles are introduced."
+
+[[content.alternatives]]
+text = "Expose stable named tiers backed by operator-owned immutable profiles"
+status = "considered"
+
+[[content.alternatives]]
+text = "Expose raw quota and device fields directly on each Oubliette"
+status = "considered"
+
+[[content.alternatives]]
+text = "Reference separate operator-managed ResourceProfile custom resources"
+status = "considered"

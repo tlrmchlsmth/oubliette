@@ -1,0 +1,27 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0005"
+title = "Define the sync allowlist and host admission boundary"
+status = "proposed"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "A virtual cluster administrator can create arbitrary namespaced workloads and cluster-scoped virtual objects. Only a bounded subset may produce host objects, and every synchronized workload must remain subject to host controls that the tenant cannot mutate."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "This decision defines the effective security boundary, supported Kubernetes surface, policy rollout mechanism, and compatibility tests required for every vCluster upgrade."
+
+[[content.alternatives]]
+text = "Use a fixed minimal vCluster sync allowlist plus independent host admission and network policy"
+status = "considered"
+
+[[content.alternatives]]
+text = "Permit broad synchronization and rely primarily on policy installed inside each virtual cluster"
+status = "considered"
+
+[[content.alternatives]]
+text = "Replace synchronization with namespace-scoped direct host RBAC"
+status = "considered"

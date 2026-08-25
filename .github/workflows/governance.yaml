@@ -1,0 +1,33 @@
+name: governance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  govctl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned govctl
+        env:
+          GOVCTL_VERSION: 0.19.1
+          GOVCTL_SHA256: fdd3f42d4df1150f63cf3d27b797f51c9a2d026ae9a7064a501b329d88f0de98
+        run: |
+          archive="govctl-v${GOVCTL_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          curl --fail --location --silent --show-error \
+            --output "$archive" \
+            "https://github.com/govctl-org/govctl/releases/download/v${GOVCTL_VERSION}/${archive}"
+          echo "${GOVCTL_SHA256}  ${archive}" | sha256sum --check
+          tar --extract --gzip --file "$archive"
+          echo "$PWD/govctl-v${GOVCTL_VERSION}-x86_64-unknown-linux-gnu" >> "$GITHUB_PATH"
+      - name: Validate governance artifacts
+        run: govctl check
+      - name: Verify rendered RFCs are current
+        run: |
+          govctl render rfc
+          git diff --exit-code -- docs/rfc

@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-NETWORK-ISOLATION"
+title = "Clique network isolation"
+kind = "normative"
+status = "active"
+
+[content]
+text = "Host pod networking MUST default deny traffic outside the clique, permit required intra-clique traffic, and restrict egress to an operator allowlist. RDMA traffic MUST use clique-scoped SR-IOV allocation and fabric segmentation where supported. The design MUST document any fabric isolation unit that Kubernetes cannot enforce."

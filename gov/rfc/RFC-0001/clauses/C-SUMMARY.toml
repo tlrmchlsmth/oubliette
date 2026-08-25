@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-SUMMARY"
+title = "System summary"
+kind = "informative"
+status = "active"
+
+[content]
+text = "Oubliette will create disposable vCluster-backed Kubernetes environments for agent-spawned LLM-serving cliques. Agents receive broad authority inside their virtual control plane while independent host admission, resource, network, and lifecycle controls bound the real workloads."

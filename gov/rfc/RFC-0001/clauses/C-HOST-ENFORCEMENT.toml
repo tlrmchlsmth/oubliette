@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-HOST-ENFORCEMENT"
+title = "Host-enforced workload policy"
+kind = "normative"
+status = "active"
+
+[content]
+text = "Every synchronized workload MUST pass host-side admission that the virtual administrator cannot modify or bypass. Host policy MUST reject privileged containers, hostPID, hostIPC, hostNetwork, hostPath, and unapproved capabilities or runtime classes. Any inference exception, including IPC_LOCK, hugepages, or bounded shared memory, MUST be explicit and narrower than the general workload policy."

@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-OBSERVABILITY"
+title = "Scoped observability and provenance"
+kind = "normative"
+status = "active"
+
+[content]
+text = "Host telemetry MUST attribute GPU and workload metrics to a clique without exposing other tenants. Benchmark evidence MUST record immutable inputs, component versions, exact measurement windows, virtual and host object lineage, transport proof, admission results, and teardown inventory."

@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-MILESTONE-ONE"
+title = "First milestone acceptance"
+kind = "normative"
+status = "active"
+
+[content]
+text = "The first milestone MUST run two synchronized inference pods on one GPU node, allocate a bounded SR-IOV VF to each pod, enforce host admission and default-deny networking, and prove KV traffic traverses the intended VF rather than pod networking, shared memory, CUDA IPC, or another fallback. TTL teardown MUST remove all host artifacts without agent cleanup."

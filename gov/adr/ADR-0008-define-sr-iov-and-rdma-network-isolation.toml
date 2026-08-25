@@ -1,0 +1,31 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0008"
+title = "Define SR-IOV and RDMA network isolation"
+status = "proposed"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "Kubernetes NetworkPolicy does not constrain the RDMA fabric. The first milestone needs two pods to exchange KV data through SR-IOV while preventing accidental or hostile cross-clique fabric access."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "This decision establishes the minimum allocatable isolation unit, required fabric integration, failure containment, and transport evidence needed before multi-node work."
+
+[[content.alternatives]]
+text = "Allocate clique-scoped SR-IOV VFs with a dedicated pkey or VLAN from an operator-sized hardware pool"
+status = "considered"
+
+[[content.alternatives]]
+text = "Use shared SR-IOV VFs without per-clique fabric segmentation"
+status = "considered"
+
+[[content.alternatives]]
+text = "Dedicate an entire fabric domain or node partition to each GPU clique"
+status = "considered"
+
+[[content.alternatives]]
+text = "Exclude RDMA from the first milestone"
+status = "considered"

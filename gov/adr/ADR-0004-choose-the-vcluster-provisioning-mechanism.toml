@@ -1,0 +1,31 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0004"
+title = "Choose the vCluster provisioning mechanism"
+status = "proposed"
+date = "2026-08-25"
+refs = ["RFC-0001"]
+
+[content]
+context = "Open-source vCluster is primarily distributed as a Helm chart, while platform APIs and generic Helm release controllers introduce different dependencies and lifecycle contracts. Oubliette needs declarative reconciliation without coupling to undocumented chart internals."
+decision = """
+Describe the decision that was made.
+What is the change that we're proposing and/or doing?"""
+consequences = "The choice affects controller dependencies, upgrade ownership, status fidelity, rollback behavior, air-gapped installation, and whether Oubliette requires another cluster operator."
+
+[[content.alternatives]]
+text = "Embed the Helm SDK and reconcile a pinned vCluster chart release"
+status = "considered"
+
+[[content.alternatives]]
+text = "Create Flux HelmRelease resources and require Flux on the host"
+status = "considered"
+
+[[content.alternatives]]
+text = "Target vCluster Platform VirtualClusterInstance resources"
+status = "considered"
+
+[[content.alternatives]]
+text = "Render and own vCluster chart objects directly"
+status = "considered"
