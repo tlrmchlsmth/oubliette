@@ -3,25 +3,23 @@
 [govctl]
 id = "ADR-0003"
 title = "Choose API identity scope and lifecycle semantics"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = ["RFC-0001"]
 
 [content]
 context = "The public Kubernetes API identity, CR scope, derived namespace naming, TTL behavior, and terminal observability are difficult to migrate after users create objects. In particular, deleted Kubernetes objects cannot retain a terminal status condition."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "This decision will establish the long-lived API compatibility surface and the distinction between TTL tombstones and explicit deletion."
+decision = "Use a cluster-scoped `Oubliette` custom resource in API group `oubliette.tlrmchlsmth.github.io`, initially at version `v1alpha1`, with short name `oub`. The controller derives a host namespace named `oub-<id>`; callers cannot choose or share that namespace. Every object has an absolute UTC expiry in `spec.expiresAt`. The lifecycle service converts relative TTL requests into a policy-bounded expiry, and renewal may only move a non-terminal object's expiry forward within policy. The controller begins finalization when the expiry is reached, even if provisioning never became ready. TTL expiry removes all owned infrastructure and credentials, then retains the root resource as a bounded tombstone with `Forgotten=True` so expiry is observable. Explicit Kubernetes deletion uses a finalizer to perform the same cleanup and then removes the root resource; clients observe that path through the lifecycle operation and audit trail rather than a post-deletion condition. Tombstone retention is operator-configured and finite."
+consequences = "The stable API identity and cluster scope match Oubliette's host-wide resource ownership, while derived namespaces prevent callers from weakening tenancy. Absolute expiry is restart-safe and unambiguous, and retained TTL tombstones make automatic forgetting observable. The controller must authorize lifecycle callers above the CRD, enforce monotonic bounded renewal, garbage-collect tombstones, and test both expiry and explicit-deletion finalization. A future API version is required for incompatible changes."
 
 [[content.alternatives]]
 text = "Use a cluster-scoped Oubliette CR under a GitHub-backed DNS group with controller-retained TTL tombstones"
-status = "considered"
+status = "accepted"
 
 [[content.alternatives]]
 text = "Use a namespaced Oubliette CR in an operator control namespace"
-status = "considered"
+status = "rejected"
 
 [[content.alternatives]]
 text = "Expose only the underlying vCluster release API and keep no Oubliette CR"
-status = "considered"
+status = "rejected"

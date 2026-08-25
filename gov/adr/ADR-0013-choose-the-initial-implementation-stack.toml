@@ -1,0 +1,32 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0013"
+title = "Choose the initial implementation stack"
+status = "accepted"
+date = "2026-08-25"
+refs = [
+    "RFC-0001",
+    "ADR-0012",
+]
+
+[content]
+context = "Oubliette needs a Kubernetes controller and an authenticated MCP lifecycle service. Choosing the initial language and framework before implementation avoids duplicate domain models, incompatible lifecycle semantics, and accidental commitment to an unstable protocol implementation."
+decision = "Implement the initial controller and MCP lifecycle service in one Go module. Use controller-runtime for Kubernetes reconciliation and the official modelcontextprotocol/go-sdk for MCP, with stateless Streamable HTTP as the initial remote transport. Keep API types, lifecycle rules, authorization interfaces, and status projections in shared packages while preserving binary and deployment boundaries so the controller and MCP service can be separated without rewriting the domain model. Pin exact dependency versions in go.mod and update them deliberately. Milestone 0 uses stable SDK releases and protocol negotiation; support for a newer MCP protocol revision is enabled only when both the official stable SDK and supported consumers interoperate with it."
+consequences = "The implementation aligns with the Kubernetes controller ecosystem, shares one typed lifecycle model, and uses the official MCP SDK. Stateless MCP instances can scale without owning session state, while Oubliette state remains authoritative in Kubernetes. The repository must manage Kubernetes dependency compatibility carefully, keep transport concerns out of reconciliation, and test MCP authorization and idempotency independently from controller convergence. Waiting for stable SDK support may delay use of newly published MCP protocol features."
+
+[[content.alternatives]]
+text = "Use Go, controller-runtime, and the official MCP Go SDK in one module with separable service boundaries"
+status = "accepted"
+
+[[content.alternatives]]
+text = "Implement the controller with Rust kube-rs and the lifecycle service with a Rust MCP SDK"
+status = "rejected"
+
+[[content.alternatives]]
+text = "Implement both services in Python using an operator framework and Python MCP SDK"
+status = "rejected"
+
+[[content.alternatives]]
+text = "Start with separate languages and repositories for the controller and MCP service"
+status = "rejected"

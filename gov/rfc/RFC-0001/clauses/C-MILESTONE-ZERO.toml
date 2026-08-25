@@ -1,0 +1,10 @@
+#:schema ../../../schema/clause.schema.json
+
+[govctl]
+id = "C-MILESTONE-ZERO"
+title = "Bootstrap milestone acceptance"
+kind = "normative"
+status = "active"
+
+[content]
+text = "Milestone 0 MUST allow an agent in an approved consumer-owned sandbox to create a stub-tier Oubliette through the authenticated MCP lifecycle interface. The consumer integration MUST deliver virtual-cluster access outside the MCP transcript. Using that access, the agent MUST be able to create and observe an arbitrary namespaced workload through the virtual Kubernetes API. Explicit deletion and TTL expiry MUST remove the virtual control plane, derived host namespace, synchronized objects, credentials, and storage without agent cleanup. Milestone 0 does not require GPUs, RDMA, Kueue, or production observability."

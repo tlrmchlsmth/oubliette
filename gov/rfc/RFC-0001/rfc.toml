@@ -46,7 +46,10 @@ clauses = ["clauses/C-OBSERVABILITY.toml"]
 
 [[sections]]
 title = "Milestones"
-clauses = ["clauses/C-MILESTONE-ONE.toml"]
+clauses = [
+    "clauses/C-MILESTONE-ZERO.toml",
+    "clauses/C-MILESTONE-ONE.toml",
+]
 
 [[sections]]
 title = "Interfaces"
