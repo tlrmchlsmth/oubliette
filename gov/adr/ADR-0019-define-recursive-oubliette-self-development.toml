@@ -25,7 +25,7 @@ decision = "Adopt literal vCluster nesting for Oubliette self-development. A dev
 consequences = "An autonomous agent can replace and exercise the full Oubliette stack without expanding authority beyond its outer Oubliette. The supported topology initially has depth one and consumes the parent profile budget; deeper recursion remains unsupported. The implementation must distinguish inherited tenant isolation from independent host isolation, inject host invariants into generated vCluster system workloads, validate profile resources against the selected ClusterQueue before readiness, avoid fixed runtime IDs that conflict with platform admission, preserve Kueue-owned scheduling gates across synchronization, make supported child control-plane state survive rollout, and test double translation, status reflection, logs, credential containment, and cascade deletion. Literal nesting adds operational complexity and lower production-topology fidelity, but it provides the strongest self-hosting development loop."
 
 [[content.alternatives]]
-text = "Run a complete child Oubliette stack as workloads inside the outer Oubliette, including a child vCluster whose resources traverse both inner and outer synchronization layers"
+text = "Run a complete child Oubliette stack as workloads inside the outer Oubliette, including a child vCluster whose workloads are synchronized through the outer vCluster onto the host cluster"
 status = "accepted"
 pros = [
     "Provides the strongest self-hosting experience: the autonomous agent can replace the entire experimental stack using only its outer virtual API",
