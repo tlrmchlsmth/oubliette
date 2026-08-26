@@ -59,10 +59,15 @@ func TestValuesComposeNestedHostInvariants(t *testing.T) {
 		t.Fatalf("CoreDNS queue labels = %#v", corednsLabels)
 	}
 	security := statefulSet["security"].(map[string]any)
-	for _, contextName := range []string{"podSecurityContext", "containerSecurityContext"} {
+	for contextName, identityFields := range map[string][]string{
+		"podSecurityContext":       {"runAsUser", "runAsGroup", "fsGroup"},
+		"containerSecurityContext": {"runAsUser", "runAsGroup"},
+	} {
 		context := security[contextName].(map[string]any)
-		if _, exists := context["runAsUser"]; exists {
-			t.Fatalf("%s pins a runtime user under platform admission: %#v", contextName, context)
+		for _, field := range identityFields {
+			if value, exists := context[field]; !exists || value != nil {
+				t.Fatalf("%s does not null chart-owned %s under platform admission: %#v", contextName, field, context)
+			}
 		}
 		if context["runAsNonRoot"] != true {
 			t.Fatalf("%s lost non-root enforcement: %#v", contextName, context)

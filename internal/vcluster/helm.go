@@ -367,6 +367,14 @@ func values(name, namespace string, options ValuesOptions) (map[string]any, erro
 		podSecurity["fsGroup"] = options.RuntimeIdentity.FSGroup
 		containerSecurity["runAsUser"] = options.RuntimeIdentity.User
 		containerSecurity["runAsGroup"] = options.RuntimeIdentity.Group
+	} else {
+		// Explicit nulls override chart-owned numeric defaults during Helm value
+		// coalescing. Omitting these keys would restore runAsUser/runAsGroup 0.
+		podSecurity["runAsUser"] = nil
+		podSecurity["runAsGroup"] = nil
+		podSecurity["fsGroup"] = nil
+		containerSecurity["runAsUser"] = nil
+		containerSecurity["runAsGroup"] = nil
 	}
 	statefulSet := map[string]any{
 		"image": map[string]any{"repository": "loft-sh/vcluster-oss"},
