@@ -1,0 +1,68 @@
+#:schema ../schema/adr.schema.json
+
+[govctl]
+id = "ADR-0019"
+title = "Define recursive Oubliette self-development"
+status = "proposed"
+date = "2026-08-25"
+refs = [
+    "RFC-0001",
+    "ADR-0003",
+    "ADR-0004",
+    "ADR-0005",
+    "ADR-0006",
+    "ADR-0007",
+    "ADR-0009",
+    "ADR-0011",
+    "ADR-0012",
+    "ADR-0014",
+    "ADR-0015",
+]
+
+[content]
+context = "Oubliette must be safely developable by a model-driven agent operating with unrestricted authority inside a disposable outer Oubliette. The agent needs to build, deploy, exercise, break, and recover Oubliette control-plane changes against child environments without receiving host Kubernetes credentials or gaining authority over unrelated tenants. vCluster supports tenant clusters nested inside tenant clusters, but an Oubliette deployment adds host admission, Kueue, synchronization, networking, credential, observability, resource-accounting, and teardown contracts that may not compose transparently across two sync layers. Decision criteria: containment under complete compromise of the development agent, fidelity to production behavior, bounded aggregate descendant resources, rapid local image iteration, independent recovery, transitive credential and network isolation, deterministic cascading teardown, useful diagnostics, and conformance of host policy across every synchronization layer."
+decision = "No topology has been selected. The first spike established that literal vCluster nesting can carry a workload through two synchronization layers under host Kueue admission and outer teardown, but the stock Oubliette configuration does not yet compose unchanged. Acceptance requires deciding whether to close the identified policy and profile gaps for literal nesting or prefer a logical descendant topology."
+consequences = "The selected topology will define whether descendants are physical synchronization children or logical lifecycle children, how authority and resource budgets are delegated, how experimental controller images reach the target, which component owns cascading deletion, and what nested conformance evidence is required. Until a choice is accepted, recursive self-development is experimental and must not be represented as a supported isolation contract."
+
+[[content.alternatives]]
+text = "Run a complete child Oubliette stack as workloads inside the outer Oubliette, including a child vCluster whose resources traverse both inner and outer synchronization layers"
+status = "considered"
+pros = [
+    "Provides the strongest self-hosting experience: the YOLO agent can replace the entire experimental stack using only its outer virtual API",
+    "Requires no new host lifecycle delegation mechanism for the initial proof of concept",
+    "An ephemeral Pirate spike with vCluster 0.36.1 proved that an inner API workload can traverse two synchronization layers, retain the fixed queue label, receive host Kueue admission, reflect Running and Ready status through both virtual APIs, and emit logs through the inner API",
+    "Deleting the outer host namespace while the inner control plane and workload were live removed every nested pod and Kueue Workload without child cooperation",
+]
+cons = [
+    "Every child workload and control-plane object crosses two sync and translation layers, reducing fidelity to ordinary Oubliette deployment",
+    "Host admission, fixed Kueue labels, network policy, storage, service discovery, status reflection, and teardown may not compose without special nested handling",
+    "The stock configuration did not compose unchanged on OpenShift: the fixed UID and GID 1000 were outside the namespace SCC range and required an environment-specific runtime identity",
+    "The inner control-plane pod could not receive Kueue admission while it requested ephemeral-storage because the selected ClusterQueue did not cover that resource",
+    "Automatically generated CoreDNS pods lacked the mandatory fixed queue label at both synchronization layers; host admission denied them and the inner syncer would not create workloads until DNS had a host service IP",
+    "While host Kueue held a synchronized pod behind its admission gate, the outer syncer repeatedly attempted to remove that gate and produced admission-denied reconciliation errors",
+    "Updating the inner control plane erased inner API state because the current stub profile uses an ephemeral SQLite emptyDir",
+]
+
+[[content.alternatives]]
+text = "Keep child Oubliettes as host-level peers and delegate a lineage-scoped lifecycle capability to the outer Oubliette, enforcing parent budgets and cascading teardown in the trusted management plane"
+status = "considered"
+pros = [
+    "Preserves the ordinary single-sync production topology and keeps descendant enforcement in the trusted management plane",
+    "Can enforce aggregate budgets, lineage-scoped authorization, and cascading teardown independently of the development agent",
+]
+cons = [
+    "Requires a new parent identity, delegated lifecycle capability, aggregate quota model, and descendant garbage collection contract",
+    "The experimental controller is not literally controlling the same management-plane boundary it would own in production",
+]
+
+[[content.alternatives]]
+text = "Use the outer Oubliette only as the agent sandbox and development workspace while a trusted external bootstrap adapter deploys each unparented target Oubliette"
+status = "considered"
+pros = ["Matches the existing external bootstrap composition and requires the least new trusted control-plane behavior"]
+cons = ["A trusted adapter remains in the edit-test loop and targets have no parent-enforced aggregate budget or cascading lifecycle"]
+
+[[content.alternatives]]
+text = "Give the outer development Oubliette direct credentials for an allowlisted host namespace and let its experimental controller manage child resources there"
+status = "rejected"
+pros = ["Lets the experimental controller create direct host-level resources with high deployment fidelity"]
+cons = ["Violates the normative prohibition on giving resident or external agents host Kubernetes credentials and makes host safety depend on credential scoping correctness"]
