@@ -10,6 +10,30 @@ The repository contains a Go controller, authenticated MCP lifecycle service,
 scoped metrics gateway, evidence exporter, and `oub` client. The system charter remains the draft [[RFC-0001]], and
 [[ADR-0001]] establishes the governance process.
 
+## Lifecycle authentication
+
+The MCP service authenticates caller-specific, audience-bound Kubernetes
+credentials through TokenReview. Consumer-owned connectors request short-lived
+tokens for the `oubliette-mcp` audience and pass them as bearer credentials;
+the lifecycle service stores only a digest of the authenticated identity and
+limits create, get, list, renew, and delete to that identity's Oubliettes.
+Rotated tokens for the same identity retain access, while tokens issued for the
+host API or another audience are rejected.
+
+The controller reports `Ready=True` only after it has used the chart-generated
+bootstrap kubeconfig in memory to reconcile the fixed `oubliette-agent`
+ServiceAccount and its virtual `cluster-admin` binding. Consumer connectors can
+then request short-lived virtual tokens without receiving that bootstrap
+kubeconfig.
+
+For example, a trusted connector can request a token for its own ServiceAccount
+and supply it to `oub` without exposing it in a model transcript:
+
+```console
+export OUBLIETTE_MCP_TOKEN="$(kubectl -n consumer create token agent --audience=oubliette-mcp --duration=15m)"
+oub list
+```
+
 ## Kueue integration
 
 Host-authoritative Kueue integration is opt-in through the controller's

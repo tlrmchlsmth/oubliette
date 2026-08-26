@@ -1,0 +1,49 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-08-25-004"
+title = "Enforce caller-scoped lifecycle authorization"
+status = "done"
+created = "2026-08-25"
+started = "2026-08-25"
+completed = "2026-08-25"
+refs = [
+    "RFC-0001:C-AGENT-INTERFACE",
+    "RFC-0001:C-API-ISOLATION",
+    "ADR-0003",
+    "ADR-0007",
+    "ADR-0012",
+]
+tags = [
+    "security",
+    "api",
+    "lifecycle",
+]
+
+[content]
+description = "Implement caller-scoped lifecycle authorization required by [[ADR-0003]] and [[ADR-0012]]. Authenticate MCP requests with audience-bound Kubernetes TokenReview credentials, bind each Oubliette to its creating caller, and prevent get, list, renew, or delete operations from crossing caller boundaries without exposing host credentials to agents."
+
+[[content.acceptance_criteria]]
+text = "MCP accepts only audience-bound credentials validated by Kubernetes TokenReview and derives an authenticated caller identity without forwarding host credentials to lifecycle code."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Create records controller-owned caller identity metadata, and get, list, renew, delete, and idempotent create expose or mutate only Oubliettes owned by that caller."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Existing unowned resources fail closed, ownership metadata is not accepted from MCP input, and authorization failures do not reveal another caller's resource state."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Automated tests cover valid and invalid audiences, unauthenticated requests, cross-caller read/list/renew/delete denial, and same-caller idempotency."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Go tests, static validation, govctl check, and the required governance guard pass."
+status = "done"
+category = "chore"

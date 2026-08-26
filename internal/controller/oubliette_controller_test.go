@@ -69,8 +69,12 @@ func TestReconcileReadyAndExpiry(t *testing.T) {
 	if _, err := r.Reconcile(context.Background(), req); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Reconcile(context.Background(), req); err != nil {
+	result, err := r.Reconcile(context.Background(), req)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if result.RequeueAfter != 30*time.Second {
+		t.Fatalf("ready recheck = %s, want 30s", result.RequeueAfter)
 	}
 	var got oubv1.Oubliette
 	if err := c.Get(context.Background(), req.NamespacedName, &got); err != nil {

@@ -14,6 +14,10 @@ Oubliette uses govctl as its governance control plane.
   files under `docs/rfc/`.
 - Add executable guards and conformance cases as implementation work is
   authorized.
+- Use an isolated git worktree for changes when the primary worktree is dirty,
+  belongs to another in-progress branch, or would otherwise mix unrelated user
+  work. Never overwrite, stash, or carry unrelated primary-worktree changes
+  into the task branch.
 - Keep environment-specific operational scripts, cluster credentials, captured
   evidence, and one-off validation harnesses out of the repository. Run them
   from local or otherwise ephemeral workspace paths and record only portable

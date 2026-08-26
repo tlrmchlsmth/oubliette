@@ -6,6 +6,9 @@ import (
 
 const (
 	TierStub = "stub"
+	// CallerDigestAnnotation binds an Oubliette to the authenticated lifecycle
+	// caller that created it without persisting the caller's raw identity.
+	CallerDigestAnnotation = "oubliette.tlrmchlsmth.github.io/caller-digest"
 
 	ConditionProvisioned  = "Provisioned"
 	ConditionReady        = "Ready"

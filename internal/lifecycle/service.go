@@ -2,6 +2,7 @@ package lifecycle
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"sort"
@@ -20,6 +21,23 @@ const (
 )
 
 var nameRE = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+
+type callerContextKey struct{}
+
+// WithCaller attaches an authenticated lifecycle identity to a request.
+// Authentication adapters must call this only after validating the credential.
+func WithCaller(ctx context.Context, caller string) context.Context {
+	return context.WithValue(ctx, callerContextKey{}, caller)
+}
+
+// Caller returns the authenticated lifecycle identity attached to ctx.
+func Caller(ctx context.Context) (string, error) {
+	caller, _ := ctx.Value(callerContextKey{}).(string)
+	if caller == "" {
+		return "", fmt.Errorf("authenticated lifecycle caller is required")
+	}
+	return caller, nil
+}
 
 type Service struct {
 	Client client.Client
@@ -70,6 +88,10 @@ type ListOutput struct {
 }
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (View, error) {
+	owner, err := callerDigest(ctx)
+	if err != nil {
+		return View{}, err
+	}
 	if err := validateName(in.Name); err != nil {
 		return View{}, err
 	}
@@ -85,7 +107,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (View, error) {
 	expires := metav1.NewTime(s.now().Add(time.Duration(in.TTLSeconds) * time.Second))
 	obj := &oubv1.Oubliette{
 		TypeMeta:   metav1.TypeMeta{APIVersion: oubv1.GroupVersion.String(), Kind: "Oubliette"},
-		ObjectMeta: metav1.ObjectMeta{Name: in.Name},
+		ObjectMeta: metav1.ObjectMeta{Name: in.Name, Annotations: map[string]string{oubv1.CallerDigestAnnotation: owner}},
 		Spec:       oubv1.OublietteSpec{Tier: in.Tier, ExpiresAt: expires},
 	}
 	if err := s.Client.Create(ctx, obj); err != nil {
@@ -95,6 +117,9 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (View, error) {
 		if err := s.Client.Get(ctx, client.ObjectKey{Name: in.Name}, obj); err != nil {
 			return View{}, err
 		}
+		if !ownedBy(obj, owner) {
+			return View{}, apierrors.NewAlreadyExists(oubv1.GroupVersion.WithResource("oubliettes").GroupResource(), in.Name)
+		}
 		if obj.Spec.Tier != in.Tier {
 			return View{}, fmt.Errorf("%s already exists with tier %s", in.Name, obj.Spec.Tier)
 		}
@@ -103,6 +128,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (View, error) {
 }
 
 func (s *Service) Get(ctx context.Context, in NameInput) (View, error) {
+	owner, err := callerDigest(ctx)
+	if err != nil {
+		return View{}, err
+	}
 	if err := validateName(in.Name); err != nil {
 		return View{}, err
 	}
@@ -110,23 +139,36 @@ func (s *Service) Get(ctx context.Context, in NameInput) (View, error) {
 	if err := s.Client.Get(ctx, client.ObjectKey{Name: in.Name}, &obj); err != nil {
 		return View{}, err
 	}
+	if !ownedBy(&obj, owner) {
+		return View{}, notFound(in.Name)
+	}
 	return project(&obj), nil
 }
 
 func (s *Service) List(ctx context.Context, _ ListInput) (ListOutput, error) {
+	owner, err := callerDigest(ctx)
+	if err != nil {
+		return ListOutput{}, err
+	}
 	var list oubv1.OublietteList
 	if err := s.Client.List(ctx, &list); err != nil {
 		return ListOutput{}, err
 	}
 	out := ListOutput{Items: make([]View, 0, len(list.Items))}
 	for i := range list.Items {
-		out.Items = append(out.Items, project(&list.Items[i]))
+		if ownedBy(&list.Items[i], owner) {
+			out.Items = append(out.Items, project(&list.Items[i]))
+		}
 	}
 	sort.Slice(out.Items, func(i, j int) bool { return out.Items[i].Name < out.Items[j].Name })
 	return out, nil
 }
 
 func (s *Service) Renew(ctx context.Context, in RenewInput) (View, error) {
+	owner, err := callerDigest(ctx)
+	if err != nil {
+		return View{}, err
+	}
 	if err := validateName(in.Name); err != nil {
 		return View{}, err
 	}
@@ -136,6 +178,9 @@ func (s *Service) Renew(ctx context.Context, in RenewInput) (View, error) {
 	var obj oubv1.Oubliette
 	if err := s.Client.Get(ctx, client.ObjectKey{Name: in.Name}, &obj); err != nil {
 		return View{}, err
+	}
+	if !ownedBy(&obj, owner) {
+		return View{}, notFound(in.Name)
 	}
 	if apiMeta.IsStatusConditionTrue(obj.Status.Conditions, oubv1.ConditionForgotten) {
 		return View{}, fmt.Errorf("%s is terminal", in.Name)
@@ -151,14 +196,40 @@ func (s *Service) Renew(ctx context.Context, in RenewInput) (View, error) {
 }
 
 func (s *Service) Delete(ctx context.Context, in NameInput) (DeleteOutput, error) {
+	owner, err := callerDigest(ctx)
+	if err != nil {
+		return DeleteOutput{}, err
+	}
 	if err := validateName(in.Name); err != nil {
 		return DeleteOutput{}, err
 	}
-	obj := &oubv1.Oubliette{ObjectMeta: metav1.ObjectMeta{Name: in.Name}}
+	obj := &oubv1.Oubliette{}
+	if err := s.Client.Get(ctx, client.ObjectKey{Name: in.Name}, obj); err != nil {
+		return DeleteOutput{}, err
+	}
+	if !ownedBy(obj, owner) {
+		return DeleteOutput{}, notFound(in.Name)
+	}
 	if err := s.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
 		return DeleteOutput{}, err
 	}
 	return DeleteOutput{Name: in.Name, Status: "deleting"}, nil
+}
+
+func callerDigest(ctx context.Context) (string, error) {
+	caller, err := Caller(ctx)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("sha256:%x", sha256.Sum256([]byte(caller))), nil
+}
+
+func ownedBy(obj *oubv1.Oubliette, digest string) bool {
+	return obj.Annotations != nil && obj.Annotations[oubv1.CallerDigestAnnotation] == digest
+}
+
+func notFound(name string) error {
+	return apierrors.NewNotFound(oubv1.GroupVersion.WithResource("oubliettes").GroupResource(), name)
 }
 
 func (s *Service) now() time.Time {

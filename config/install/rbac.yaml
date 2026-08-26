@@ -55,6 +55,10 @@ kind: ClusterRole
 metadata:
   name: oubliette-mcp
 rules:
+  # Audience-bound lifecycle credentials are authenticated through TokenReview.
+  - apiGroups: ["authentication.k8s.io"]
+    resources: ["tokenreviews"]
+    verbs: ["create"]
   - apiGroups: ["oubliette.tlrmchlsmth.github.io"]
     resources: ["oubliettes"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
