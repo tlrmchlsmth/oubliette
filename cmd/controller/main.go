@@ -45,7 +45,7 @@ func main() {
 	flag.StringVar(&kueueClusterQueue, "kueue-cluster-queue", "", "host ClusterQueue for Oubliette LocalQueues; empty uses static capacity")
 	flag.StringVar(&kueueManagedLabel, "kueue-managed-label", "kueue.x-k8s.io/managed-namespace", "namespace label key selected by host Kueue")
 	flag.StringVar(&kueueManagedValue, "kueue-managed-value", "true", "namespace label value selected by host Kueue")
-	flag.StringVar(&hostWorkloadQueue, "host-workload-queue", "", "fixed host LocalQueue label for synchronized vCluster system pods; defaults to oubliette when host Kueue integration is enabled")
+	flag.StringVar(&hostWorkloadQueue, "host-workload-queue", "", "fixed host LocalQueue label for nested vCluster system pods; empty keeps top-level control planes outside Kueue")
 	flag.Int64Var(&vclusterRunAsUser, "vcluster-run-as-user", 1000, "numeric vCluster runtime user; set all runtime identity flags to zero for platform admission")
 	flag.Int64Var(&vclusterRunAsGroup, "vcluster-run-as-group", 1000, "numeric vCluster runtime group; set all runtime identity flags to zero for platform admission")
 	flag.Int64Var(&vclusterFSGroup, "vcluster-fs-group", 1000, "numeric vCluster filesystem group; set all runtime identity flags to zero for platform admission")
@@ -61,9 +61,6 @@ func main() {
 	opts := zap.Options{Development: false}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-	if hostWorkloadQueue == "" && kueueClusterQueue != "" {
-		hostWorkloadQueue = oubcontroller.KueueQueueName
-	}
 	vclusterValues := vcluster.ValuesOptions{
 		HostWorkloadQueue: hostWorkloadQueue,
 		RuntimeIdentity: &vcluster.RuntimeIdentity{

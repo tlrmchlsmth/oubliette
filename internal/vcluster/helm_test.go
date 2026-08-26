@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,6 +37,9 @@ func TestValuesPinNumericNonRootIdentity(t *testing.T) {
 	}
 	if _, ok := controlPlane["coredns"]; ok {
 		t.Fatal("ordinary values unexpectedly configure CoreDNS queue labels")
+	}
+	if _, ok := statefulSet["pods"]; ok {
+		t.Fatal("ordinary values unexpectedly queue the top-level control plane")
 	}
 }
 
@@ -85,6 +89,7 @@ func TestValuesRejectInvalidHostInvariants(t *testing.T) {
 		options ValuesOptions
 	}{
 		{name: "queue", options: ValuesOptions{HostWorkloadQueue: "Not_A_Queue"}},
+		{name: "queue longer than label value", options: ValuesOptions{HostWorkloadQueue: strings.Repeat("a", 64)}},
 		{name: "partial identity", options: ValuesOptions{RuntimeIdentity: &RuntimeIdentity{User: 1000}}},
 		{name: "partial storage", options: ValuesOptions{EphemeralStorage: &ResourceBounds{Request: "1Gi"}}},
 		{name: "invalid request", options: ValuesOptions{EphemeralStorage: &ResourceBounds{Request: "nope", Limit: "2Gi"}}},

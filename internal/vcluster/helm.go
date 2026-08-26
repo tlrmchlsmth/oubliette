@@ -75,6 +75,9 @@ func (o ValuesOptions) Validate() error {
 		if problems := kvalidation.IsDNS1123Subdomain(o.HostWorkloadQueue); len(problems) > 0 {
 			return fmt.Errorf("host workload queue must be a DNS-1123 subdomain: %s", problems[0])
 		}
+		if problems := kvalidation.IsValidLabelValue(o.HostWorkloadQueue); len(problems) > 0 {
+			return fmt.Errorf("host workload queue must be a valid label value: %s", problems[0])
+		}
 	}
 	if o.RuntimeIdentity != nil {
 		identity := o.RuntimeIdentity
