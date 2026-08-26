@@ -3,9 +3,10 @@
 [govctl]
 id = "WI-2026-08-25-006"
 title = "Implement recursive vCluster manifest invariants"
-status = "active"
+status = "done"
 created = "2026-08-25"
 started = "2026-08-25"
+completed = "2026-08-25"
 refs = [
     "RFC-0001:C-AGENT-RUNTIME",
     "RFC-0001:C-API-ISOLATION",
@@ -34,7 +35,7 @@ category = "security"
 
 [[content.acceptance_criteria]]
 text = "Operators can select a platform-valid numeric runtime identity or omit explicit UID, GID, and fsGroup values for platform admission without exposing those controls through the agent lifecycle API."
-status = "pending"
+status = "done"
 category = "added"
 
 [[content.acceptance_criteria]]
