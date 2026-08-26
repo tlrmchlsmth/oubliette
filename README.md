@@ -51,7 +51,7 @@ storage is part of the ADR-0017 decision.
 ## Recursive self-development
 
 ADR-0019 selects one level of literal vCluster nesting for developing
-Oubliette from a YOLO agent inside an outer Oubliette. The nested stack uses
+Oubliette from an autonomous agent inside an outer Oubliette. The nested stack uses
 only the outer virtual API and inherits the outer host namespace, trust domain,
 quota, expiry, and teardown; it is not a second host isolation boundary.
 

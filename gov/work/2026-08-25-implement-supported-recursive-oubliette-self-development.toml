@@ -26,7 +26,7 @@ tags = [
 ]
 
 [content]
-description = "Implement the accepted [[ADR-0019]] literal-nesting topology so a YOLO development agent can deploy one complete experimental Oubliette stack through its outer virtual API while the outer namespace remains the sole host enforcement, resource, credential, and teardown boundary. The first slice makes generated vCluster control-plane and CoreDNS workloads preserve the fixed host queue contract, makes runtime identity and ephemeral-storage requests operator-configurable instead of assuming one platform, and adds executable coverage for the nested manifest invariants. Restart-safe child state remains dependent on the unresolved [[ADR-0017]] storage decision and is not silently enabled by this work."
+description = "Implement the accepted [[ADR-0019]] literal-nesting topology so an autonomous development agent can deploy one complete experimental Oubliette stack through its outer virtual API while the outer namespace remains the sole host enforcement, resource, credential, and teardown boundary. The first slice makes generated vCluster control-plane and CoreDNS workloads preserve the fixed host queue contract, makes runtime identity and ephemeral-storage requests operator-configurable instead of assuming one platform, and adds executable coverage for the nested manifest invariants. Restart-safe child state remains dependent on the unresolved [[ADR-0017]] storage decision and is not silently enabled by this work."
 
 [[content.acceptance_criteria]]
 text = "A separately configured host workload queue label is applied to generated vCluster control-plane and CoreDNS pod templates even when the nested controller does not manage Kueue APIs in its virtual host cluster."
