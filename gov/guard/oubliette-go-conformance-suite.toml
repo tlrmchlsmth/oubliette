@@ -6,6 +6,8 @@ title = "Oubliette Go conformance suite"
 refs = [
     "RFC-0001:C-OBSERVABILITY",
     "RFC-0001:C-LIFECYCLE",
+    "RFC-0001:C-HOST-ENFORCEMENT",
+    "RFC-0001:C-RESOURCE-BOUNDS",
 ]
 
 [check]

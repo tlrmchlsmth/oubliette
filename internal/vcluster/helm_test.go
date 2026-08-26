@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -17,7 +18,11 @@ import (
 )
 
 func TestValuesPinNumericNonRootIdentity(t *testing.T) {
-	controlPlane := values("test", "oub-test")["controlPlane"].(map[string]any)
+	got, err := values("test", "oub-test", ValuesOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	controlPlane := got["controlPlane"].(map[string]any)
 	statefulSet := controlPlane["statefulSet"].(map[string]any)
 	security := statefulSet["security"].(map[string]any)
 	for _, contextName := range []string{"podSecurityContext", "containerSecurityContext"} {
@@ -25,6 +30,77 @@ func TestValuesPinNumericNonRootIdentity(t *testing.T) {
 		if context["runAsNonRoot"] != true || context["runAsUser"] != int64(1000) || context["runAsGroup"] != int64(1000) {
 			t.Fatalf("%s does not pin the vCluster image's numeric non-root identity: %#v", contextName, context)
 		}
+	}
+	resources := statefulSet["resources"].(map[string]any)
+	if resources["requests"].(map[string]any)["ephemeral-storage"] != "256Mi" || resources["limits"].(map[string]any)["ephemeral-storage"] != "4Gi" {
+		t.Fatalf("default ephemeral-storage bounds changed: %#v", resources)
+	}
+	if _, ok := controlPlane["coredns"]; ok {
+		t.Fatal("ordinary values unexpectedly configure CoreDNS queue labels")
+	}
+	if _, ok := statefulSet["pods"]; ok {
+		t.Fatal("ordinary values unexpectedly queue the top-level control plane")
+	}
+}
+
+func TestValuesComposeNestedHostInvariants(t *testing.T) {
+	got, err := values("child", "oub-child", ValuesOptions{
+		HostWorkloadQueue: "oubliette",
+		RuntimeIdentity:   &RuntimeIdentity{},
+		EphemeralStorage:  &ResourceBounds{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	controlPlane := got["controlPlane"].(map[string]any)
+	statefulSet := controlPlane["statefulSet"].(map[string]any)
+	queueLabels := statefulSet["pods"].(map[string]any)["labels"].(map[string]any)
+	if queueLabels["kueue.x-k8s.io/queue-name"] != "oubliette" {
+		t.Fatalf("control-plane queue labels = %#v", queueLabels)
+	}
+	corednsLabels := controlPlane["coredns"].(map[string]any)["deployment"].(map[string]any)["pods"].(map[string]any)["labels"].(map[string]any)
+	if corednsLabels["kueue.x-k8s.io/queue-name"] != "oubliette" {
+		t.Fatalf("CoreDNS queue labels = %#v", corednsLabels)
+	}
+	security := statefulSet["security"].(map[string]any)
+	for contextName, identityFields := range map[string][]string{
+		"podSecurityContext":       {"runAsUser", "runAsGroup", "fsGroup"},
+		"containerSecurityContext": {"runAsUser", "runAsGroup"},
+	} {
+		context := security[contextName].(map[string]any)
+		for _, field := range identityFields {
+			if value, exists := context[field]; !exists || value != nil {
+				t.Fatalf("%s does not null chart-owned %s under platform admission: %#v", contextName, field, context)
+			}
+		}
+		if context["runAsNonRoot"] != true {
+			t.Fatalf("%s lost non-root enforcement: %#v", contextName, context)
+		}
+	}
+	resources := statefulSet["resources"].(map[string]any)
+	if resources["requests"].(map[string]any)["ephemeral-storage"] != nil || resources["limits"].(map[string]any)["ephemeral-storage"] != nil {
+		t.Fatalf("nested values do not null chart ephemeral-storage defaults: %#v", resources)
+	}
+}
+
+func TestValuesRejectInvalidHostInvariants(t *testing.T) {
+	tests := []struct {
+		name    string
+		options ValuesOptions
+	}{
+		{name: "queue", options: ValuesOptions{HostWorkloadQueue: "Not_A_Queue"}},
+		{name: "queue longer than label value", options: ValuesOptions{HostWorkloadQueue: strings.Repeat("a", 64)}},
+		{name: "partial identity", options: ValuesOptions{RuntimeIdentity: &RuntimeIdentity{User: 1000}}},
+		{name: "partial storage", options: ValuesOptions{EphemeralStorage: &ResourceBounds{Request: "1Gi"}}},
+		{name: "invalid request", options: ValuesOptions{EphemeralStorage: &ResourceBounds{Request: "nope", Limit: "2Gi"}}},
+		{name: "limit below request", options: ValuesOptions{EphemeralStorage: &ResourceBounds{Request: "2Gi", Limit: "1Gi"}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := values("test", "oub-test", tt.options); err == nil {
+				t.Fatal("values accepted invalid host invariants")
+			}
+		})
 	}
 }
 

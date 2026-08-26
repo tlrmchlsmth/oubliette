@@ -1,0 +1,18 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-NESTED-VCLUSTER-HOST-INVARIANTS"
+title = "Nested vCluster system pods preserve host invariants"
+
+[case]
+path = "internal/vcluster/helm_test.go"
+selector = "TestValuesComposeNestedHostInvariants"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-HOST-ENFORCEMENT"
+version = "0.1.0"
+
+[[case.requirements]]
+ref = "RFC-0001:C-RESOURCE-BOUNDS"
+version = "0.1.0"
