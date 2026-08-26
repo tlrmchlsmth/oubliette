@@ -23,6 +23,12 @@ spec:
             - --kueue-cluster-queue=$(KUEUE_CLUSTER_QUEUE)
             - --kueue-managed-label=$(KUEUE_MANAGED_LABEL)
             - --kueue-managed-value=$(KUEUE_MANAGED_VALUE)
+            - --host-workload-queue=$(HOST_WORKLOAD_QUEUE)
+            - --vcluster-run-as-user=$(VCLUSTER_RUN_AS_USER)
+            - --vcluster-run-as-group=$(VCLUSTER_RUN_AS_GROUP)
+            - --vcluster-fs-group=$(VCLUSTER_FS_GROUP)
+            - --vcluster-ephemeral-storage-request=$(VCLUSTER_EPHEMERAL_STORAGE_REQUEST)
+            - --vcluster-ephemeral-storage-limit=$(VCLUSTER_EPHEMERAL_STORAGE_LIMIT)
             - --metrics-profile-generation=$(METRICS_PROFILE_GENERATION)
             - --metrics-isolation-scope=$(METRICS_ISOLATION_SCOPE)
             - --metrics-trust-domain=$(METRICS_TRUST_DOMAIN)
@@ -31,6 +37,12 @@ spec:
             - {name: KUEUE_CLUSTER_QUEUE, value: ""}
             - {name: KUEUE_MANAGED_LABEL, value: kueue.x-k8s.io/managed-namespace}
             - {name: KUEUE_MANAGED_VALUE, value: "true"}
+            - {name: HOST_WORKLOAD_QUEUE, value: ""}
+            - {name: VCLUSTER_RUN_AS_USER, value: "1000"}
+            - {name: VCLUSTER_RUN_AS_GROUP, value: "1000"}
+            - {name: VCLUSTER_FS_GROUP, value: "1000"}
+            - {name: VCLUSTER_EPHEMERAL_STORAGE_REQUEST, value: 256Mi}
+            - {name: VCLUSTER_EPHEMERAL_STORAGE_LIMIT, value: 4Gi}
             - {name: METRICS_PROFILE_GENERATION, value: ""}
             - {name: METRICS_ISOLATION_SCOPE, value: ""}
             - {name: METRICS_TRUST_DOMAIN, value: ""}

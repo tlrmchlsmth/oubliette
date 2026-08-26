@@ -3,7 +3,7 @@
 [govctl]
 id = "ADR-0019"
 title = "Define recursive Oubliette self-development"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = [
     "RFC-0001",
@@ -21,12 +21,12 @@ refs = [
 
 [content]
 context = "Oubliette must be safely developable by a model-driven agent operating with unrestricted authority inside a disposable outer Oubliette. The agent needs to build, deploy, exercise, break, and recover Oubliette control-plane changes against child environments without receiving host Kubernetes credentials or gaining authority over unrelated tenants. vCluster supports tenant clusters nested inside tenant clusters, but an Oubliette deployment adds host admission, Kueue, synchronization, networking, credential, observability, resource-accounting, and teardown contracts that may not compose transparently across two sync layers. Decision criteria: containment under complete compromise of the development agent, fidelity to production behavior, bounded aggregate descendant resources, rapid local image iteration, independent recovery, transitive credential and network isolation, deterministic cascading teardown, useful diagnostics, and conformance of host policy across every synchronization layer."
-decision = "No topology has been selected. The first spike established that literal vCluster nesting can carry a workload through two synchronization layers under host Kueue admission and outer teardown, but the stock Oubliette configuration does not yet compose unchanged. Acceptance requires deciding whether to close the identified policy and profile gaps for literal nesting or prefer a logical descendant topology."
-consequences = "The selected topology will define whether descendants are physical synchronization children or logical lifecycle children, how authority and resource budgets are delegated, how experimental controller images reach the target, which component owns cascading deletion, and what nested conformance evidence is required. Until a choice is accepted, recursive self-development is experimental and must not be represented as a supported isolation contract."
+decision = "Adopt literal vCluster nesting for Oubliette self-development. A development-profile outer Oubliette may host one supported level of a complete experimental Oubliette stack, including its child vCluster, using only the outer virtual Kubernetes API. The outer Oubliette remains the sole host enforcement and accounting boundary: every descendant inherits its expiry, trust domain, network boundary, host namespace, and aggregate resource quota, and outer teardown is the authoritative cascade. Nested stacks receive no host credentials and do not constitute independent host isolation boundaries. Operator-owned profiles and generated manifests must make invariant host requirements compose across both synchronization layers, including platform-valid runtime identity, fixed queue metadata on system and workload pods, complete Kueue resource coverage, preservation of host scheduling gates, restart-safe control-plane state for supported use, and attribution across translated object identities."
+consequences = "An agent can replace and exercise the full Oubliette stack in YOLO mode without expanding authority beyond its outer Oubliette. The supported topology initially has depth one and consumes the parent profile budget; deeper recursion remains unsupported. The implementation must distinguish inherited tenant isolation from independent host isolation, inject host invariants into generated vCluster system workloads, validate profile resources against the selected ClusterQueue before readiness, avoid fixed runtime IDs that conflict with platform admission, preserve Kueue-owned scheduling gates across synchronization, make supported child control-plane state survive rollout, and test double translation, status reflection, logs, credential containment, and cascade deletion. Literal nesting adds operational complexity and lower production-topology fidelity, but it provides the strongest self-hosting development loop."
 
 [[content.alternatives]]
 text = "Run a complete child Oubliette stack as workloads inside the outer Oubliette, including a child vCluster whose resources traverse both inner and outer synchronization layers"
-status = "considered"
+status = "accepted"
 pros = [
     "Provides the strongest self-hosting experience: the YOLO agent can replace the entire experimental stack using only its outer virtual API",
     "Requires no new host lifecycle delegation mechanism for the initial proof of concept",
@@ -45,7 +45,7 @@ cons = [
 
 [[content.alternatives]]
 text = "Keep child Oubliettes as host-level peers and delegate a lineage-scoped lifecycle capability to the outer Oubliette, enforcing parent budgets and cascading teardown in the trusted management plane"
-status = "considered"
+status = "rejected"
 pros = [
     "Preserves the ordinary single-sync production topology and keeps descendant enforcement in the trusted management plane",
     "Can enforce aggregate budgets, lineage-scoped authorization, and cascading teardown independently of the development agent",
@@ -57,7 +57,7 @@ cons = [
 
 [[content.alternatives]]
 text = "Use the outer Oubliette only as the agent sandbox and development workspace while a trusted external bootstrap adapter deploys each unparented target Oubliette"
-status = "considered"
+status = "rejected"
 pros = ["Matches the existing external bootstrap composition and requires the least new trusted control-plane behavior"]
 cons = ["A trusted adapter remains in the edit-test loop and targets have no parent-enforced aggregate budget or cascading lifecycle"]
 

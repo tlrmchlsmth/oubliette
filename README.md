@@ -48,6 +48,28 @@ into the virtual API. Replacement-pod restart conformance remains blocked
 because the stub tier uses an ephemeral SQLite `emptyDir`; durable control-plane
 storage is part of the ADR-0017 decision.
 
+## Recursive self-development
+
+ADR-0019 selects one level of literal vCluster nesting for developing
+Oubliette from a YOLO agent inside an outer Oubliette. The nested stack uses
+only the outer virtual API and inherits the outer host namespace, trust domain,
+quota, expiry, and teardown; it is not a second host isolation boundary.
+
+Operators configure nested controllers with `--host-workload-queue` so both
+the generated vCluster control-plane and CoreDNS pods retain the host queue
+label across synchronization. The `--vcluster-run-as-user`,
+`--vcluster-run-as-group`, and `--vcluster-fs-group` flags select an approved
+numeric identity; setting all three to zero delegates assignment to platform
+admission. Setting both `--vcluster-ephemeral-storage-request` and
+`--vcluster-ephemeral-storage-limit` empty removes the chart defaults when the
+authoritative ClusterQueue does not cover that resource. These are trusted
+operator settings and are not lifecycle API inputs.
+
+This manifest support does not yet make recursive self-development stable.
+Restart-safe child control-plane state remains gated on ADR-0017, and complete
+double-sync, scheduling-gate, status, log, and teardown conformance must pass on
+a supported host before the topology is advertised as ready.
+
 ## Scoped metrics and evidence
 
 ADR-0010 separates agent metrics access from operator-authoritative benchmark
@@ -107,7 +129,7 @@ Rendered RFC documentation is published under `docs/rfc/`.
 - RFC-0001 is a draft covering isolation, lifecycle, resource bounds,
   observability, a stub-tier bootstrap milestone, and the first GPU/SR-IOV
   milestone.
-- ADR-0001, ADR-0003 through ADR-0015, and ADR-0018 are accepted. They authorize
+- ADR-0001, ADR-0003 through ADR-0015, ADR-0018, and ADR-0019 are accepted. They authorize
   the stub-tier implementation, its host boundaries, opt-in host-authoritative
   Kueue admission, provider-neutral RDMA profiles, and scoped observability.
 - ADR-0002 is superseded. ADR-0016 and ADR-0017 remain proposed,

@@ -1,0 +1,62 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-08-25-006"
+title = "Implement recursive vCluster manifest invariants"
+status = "done"
+created = "2026-08-25"
+started = "2026-08-25"
+completed = "2026-08-25"
+refs = [
+    "RFC-0001:C-AGENT-RUNTIME",
+    "RFC-0001:C-API-ISOLATION",
+    "RFC-0001:C-HOST-ENFORCEMENT",
+    "RFC-0001:C-RESOURCE-BOUNDS",
+    "RFC-0001:C-LIFECYCLE",
+    "ADR-0004",
+    "ADR-0005",
+    "ADR-0006",
+    "ADR-0009",
+    "ADR-0015",
+    "ADR-0019",
+]
+tags = [
+    "security",
+    "vcluster",
+]
+
+[content]
+description = "Implement the accepted [[ADR-0019]] literal-nesting topology so a YOLO development agent can deploy one complete experimental Oubliette stack through its outer virtual API while the outer namespace remains the sole host enforcement, resource, credential, and teardown boundary. The first slice makes generated vCluster control-plane and CoreDNS workloads preserve the fixed host queue contract, makes runtime identity and ephemeral-storage requests operator-configurable instead of assuming one platform, and adds executable coverage for the nested manifest invariants. Restart-safe child state remains dependent on the unresolved [[ADR-0017]] storage decision and is not silently enabled by this work."
+
+[[content.acceptance_criteria]]
+text = "A separately configured host workload queue label is applied to generated vCluster control-plane and CoreDNS pod templates even when the nested controller does not manage Kueue APIs in its virtual host cluster."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Operators can select a platform-valid numeric runtime identity or omit explicit UID, GID, and fsGroup values for platform admission without exposing those controls through the agent lifecycle API."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Operators can omit vCluster ephemeral-storage requests and limits when the authoritative ClusterQueue does not cover that resource while retaining bounded outer ResourceQuota enforcement."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Configuration validation rejects partial runtime identities, invalid queue names, and inconsistent resource settings before reconciliation."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Automated tests assert exact control-plane and CoreDNS values for ordinary and nested configurations and preserve the existing pinned chart, private service, security, and ephemeral-storage defaults."
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "Documentation distinguishes the implemented manifest slice from unresolved restart-safe storage and full Pirate recursive conformance; Go tests, static validation, govctl check, and required guards pass."
+status = "done"
+category = "chore"
+
+[verification]
+required_guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]

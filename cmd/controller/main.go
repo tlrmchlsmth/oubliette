@@ -26,6 +26,12 @@ func main() {
 	var kueueClusterQueue string
 	var kueueManagedLabel string
 	var kueueManagedValue string
+	var hostWorkloadQueue string
+	var vclusterRunAsUser int64
+	var vclusterRunAsGroup int64
+	var vclusterFSGroup int64
+	var vclusterEphemeralStorageRequest string
+	var vclusterEphemeralStorageLimit string
 	var metricsProfileGeneration string
 	var metricsEndpointPrefix string
 	var metricsIsolationScope string
@@ -39,6 +45,12 @@ func main() {
 	flag.StringVar(&kueueClusterQueue, "kueue-cluster-queue", "", "host ClusterQueue for Oubliette LocalQueues; empty uses static capacity")
 	flag.StringVar(&kueueManagedLabel, "kueue-managed-label", "kueue.x-k8s.io/managed-namespace", "namespace label key selected by host Kueue")
 	flag.StringVar(&kueueManagedValue, "kueue-managed-value", "true", "namespace label value selected by host Kueue")
+	flag.StringVar(&hostWorkloadQueue, "host-workload-queue", "", "fixed host LocalQueue label for synchronized vCluster system pods; defaults to oubliette when host Kueue integration is enabled")
+	flag.Int64Var(&vclusterRunAsUser, "vcluster-run-as-user", 1000, "numeric vCluster runtime user; set all runtime identity flags to zero for platform admission")
+	flag.Int64Var(&vclusterRunAsGroup, "vcluster-run-as-group", 1000, "numeric vCluster runtime group; set all runtime identity flags to zero for platform admission")
+	flag.Int64Var(&vclusterFSGroup, "vcluster-fs-group", 1000, "numeric vCluster filesystem group; set all runtime identity flags to zero for platform admission")
+	flag.StringVar(&vclusterEphemeralStorageRequest, "vcluster-ephemeral-storage-request", "256Mi", "vCluster ephemeral-storage request; set request and limit empty to omit")
+	flag.StringVar(&vclusterEphemeralStorageLimit, "vcluster-ephemeral-storage-limit", "4Gi", "vCluster ephemeral-storage limit; set request and limit empty to omit")
 	flag.StringVar(&metricsProfileGeneration, "metrics-profile-generation", "", "trusted metrics profile generation; empty disables agent metrics access")
 	flag.StringVar(&metricsEndpointPrefix, "metrics-endpoint-prefix", "metrics", "opaque metrics endpoint identity prefix")
 	flag.StringVar(&metricsIsolationScope, "metrics-isolation-scope", "", "operator-declared metrics isolation scope")
@@ -49,6 +61,21 @@ func main() {
 	opts := zap.Options{Development: false}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+	if hostWorkloadQueue == "" && kueueClusterQueue != "" {
+		hostWorkloadQueue = oubcontroller.KueueQueueName
+	}
+	vclusterValues := vcluster.ValuesOptions{
+		HostWorkloadQueue: hostWorkloadQueue,
+		RuntimeIdentity: &vcluster.RuntimeIdentity{
+			User: vclusterRunAsUser, Group: vclusterRunAsGroup, FSGroup: vclusterFSGroup,
+		},
+		EphemeralStorage: &vcluster.ResourceBounds{
+			Request: vclusterEphemeralStorageRequest, Limit: vclusterEphemeralStorageLimit,
+		},
+	}
+	if err := vclusterValues.Validate(); err != nil {
+		panic(err)
+	}
 	metricsProfile := profile.MetricsProfile{
 		Enabled:        metricsProfileGeneration != "",
 		Generation:     metricsProfileGeneration,
@@ -73,7 +100,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	helmManager := &vcluster.HelmManager{ChartPath: chartPath, Client: mgr.GetClient()}
+	helmManager := &vcluster.HelmManager{ChartPath: chartPath, Client: mgr.GetClient(), Values: vclusterValues}
 	evidenceExporter := evidence.ConfigMapExporter{Client: mgr.GetClient(), Store: evidence.DirectoryStore{Root: evidenceStore}}
 	if err := (&oubcontroller.OublietteReconciler{
 		Client:                  mgr.GetClient(),

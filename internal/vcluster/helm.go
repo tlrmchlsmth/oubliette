@@ -15,9 +15,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -41,6 +43,78 @@ type HelmManager struct {
 	Settings             *cli.EnvSettings
 	Client               client.Client
 	VirtualClientFactory func([]byte) (client.Client, error)
+	Values               ValuesOptions
+}
+
+type RuntimeIdentity struct {
+	User    int64
+	Group   int64
+	FSGroup int64
+}
+
+type ResourceBounds struct {
+	Request string
+	Limit   string
+}
+
+type ValuesOptions struct {
+	HostWorkloadQueue string
+	RuntimeIdentity   *RuntimeIdentity
+	EphemeralStorage  *ResourceBounds
+}
+
+func DefaultValuesOptions() ValuesOptions {
+	return ValuesOptions{
+		RuntimeIdentity:  &RuntimeIdentity{User: 1000, Group: 1000, FSGroup: 1000},
+		EphemeralStorage: &ResourceBounds{Request: "256Mi", Limit: "4Gi"},
+	}
+}
+
+func (o ValuesOptions) Validate() error {
+	if o.HostWorkloadQueue != "" {
+		if problems := kvalidation.IsDNS1123Subdomain(o.HostWorkloadQueue); len(problems) > 0 {
+			return fmt.Errorf("host workload queue must be a DNS-1123 subdomain: %s", problems[0])
+		}
+	}
+	if o.RuntimeIdentity != nil {
+		identity := o.RuntimeIdentity
+		allOmitted := identity.User == 0 && identity.Group == 0 && identity.FSGroup == 0
+		allPositive := identity.User > 0 && identity.Group > 0 && identity.FSGroup > 0
+		if !allOmitted && !allPositive {
+			return fmt.Errorf("runtime user, group, and fsGroup must either all be positive or all be zero")
+		}
+	}
+	if o.EphemeralStorage != nil {
+		bounds := o.EphemeralStorage
+		if (bounds.Request == "") != (bounds.Limit == "") {
+			return fmt.Errorf("ephemeral-storage request and limit must both be set or both be empty")
+		}
+		if bounds.Request != "" {
+			request, err := resource.ParseQuantity(bounds.Request)
+			if err != nil || request.Sign() <= 0 {
+				return fmt.Errorf("ephemeral-storage request must be a positive quantity")
+			}
+			limit, err := resource.ParseQuantity(bounds.Limit)
+			if err != nil || limit.Sign() <= 0 {
+				return fmt.Errorf("ephemeral-storage limit must be a positive quantity")
+			}
+			if limit.Cmp(request) < 0 {
+				return fmt.Errorf("ephemeral-storage limit must be greater than or equal to request")
+			}
+		}
+	}
+	return nil
+}
+
+func (o ValuesOptions) withDefaults() ValuesOptions {
+	defaults := DefaultValuesOptions()
+	if o.RuntimeIdentity == nil {
+		o.RuntimeIdentity = defaults.RuntimeIdentity
+	}
+	if o.EphemeralStorage == nil {
+		o.EphemeralStorage = defaults.EphemeralStorage
+	}
+	return o
 }
 
 func (m *HelmManager) configuration(namespace string) (*action.Configuration, error) {
@@ -60,7 +134,10 @@ func (m *HelmManager) Ensure(ctx context.Context, name, namespace string) error 
 	if err != nil {
 		return fmt.Errorf("initialize helm: %w", err)
 	}
-	desired := values(name, namespace)
+	desired, err := values(name, namespace, m.Values)
+	if err != nil {
+		return fmt.Errorf("configure vcluster: %w", err)
+	}
 	release, err := action.NewStatus(cfg).Run(name)
 	if err == nil {
 		if release.Chart != nil && release.Chart.Metadata != nil && release.Chart.Metadata.Version == ChartVersion && reflect.DeepEqual(release.Config, desired) {
@@ -263,7 +340,62 @@ func desiredHandoffBinding() *rbacv1.ClusterRoleBinding {
 	}
 }
 
-func values(name, namespace string) map[string]any {
+func values(name, namespace string, options ValuesOptions) (map[string]any, error) {
+	options = options.withDefaults()
+	if err := options.Validate(); err != nil {
+		return nil, err
+	}
+
+	requests := map[string]any{"cpu": "100m", "memory": "256Mi"}
+	limits := map[string]any{"cpu": "2", "memory": "2Gi"}
+	if options.EphemeralStorage.Request == "" {
+		requests["ephemeral-storage"] = nil
+		limits["ephemeral-storage"] = nil
+	} else {
+		requests["ephemeral-storage"] = options.EphemeralStorage.Request
+		limits["ephemeral-storage"] = options.EphemeralStorage.Limit
+	}
+	podSecurity := map[string]any{"runAsNonRoot": true, "seccompProfile": map[string]any{"type": "RuntimeDefault"}}
+	containerSecurity := map[string]any{
+		"allowPrivilegeEscalation": false,
+		"runAsNonRoot":             true,
+		"capabilities":             map[string]any{"drop": []any{"ALL"}},
+	}
+	if options.RuntimeIdentity.User > 0 {
+		podSecurity["runAsUser"] = options.RuntimeIdentity.User
+		podSecurity["runAsGroup"] = options.RuntimeIdentity.Group
+		podSecurity["fsGroup"] = options.RuntimeIdentity.FSGroup
+		containerSecurity["runAsUser"] = options.RuntimeIdentity.User
+		containerSecurity["runAsGroup"] = options.RuntimeIdentity.Group
+	}
+	statefulSet := map[string]any{
+		"image": map[string]any{"repository": "loft-sh/vcluster-oss"},
+		"resources": map[string]any{
+			"requests": requests,
+			"limits":   limits,
+		},
+		"security": map[string]any{
+			"podSecurityContext":       podSecurity,
+			"containerSecurityContext": containerSecurity,
+		},
+		"persistence": map[string]any{
+			"volumeClaim": map[string]any{"enabled": false},
+			"dataVolume":  []any{map[string]any{"name": "data", "emptyDir": map[string]any{}}},
+		},
+	}
+	controlPlane := map[string]any{
+		"backingStore": map[string]any{"database": map[string]any{"embedded": map[string]any{"enabled": true}}},
+		"service":      map[string]any{"spec": map[string]any{"type": "ClusterIP"}},
+		"statefulSet":  statefulSet,
+	}
+	if options.HostWorkloadQueue != "" {
+		queueLabels := map[string]any{"kueue.x-k8s.io/queue-name": options.HostWorkloadQueue}
+		statefulSet["pods"] = map[string]any{"labels": queueLabels}
+		controlPlane["coredns"] = map[string]any{
+			"deployment": map[string]any{"pods": map[string]any{"labels": queueLabels}},
+		}
+	}
+
 	return map[string]any{
 		"sync": map[string]any{
 			"toHost": map[string]any{
@@ -278,25 +410,7 @@ func values(name, namespace string) map[string]any {
 				"ingresses":              map[string]any{"enabled": false},
 			},
 		},
-		"controlPlane": map[string]any{
-			"backingStore": map[string]any{"database": map[string]any{"embedded": map[string]any{"enabled": true}}},
-			"service":      map[string]any{"spec": map[string]any{"type": "ClusterIP"}},
-			"statefulSet": map[string]any{
-				"image": map[string]any{"repository": "loft-sh/vcluster-oss"},
-				"resources": map[string]any{
-					"requests": map[string]any{"cpu": "100m", "memory": "256Mi", "ephemeral-storage": "256Mi"},
-					"limits":   map[string]any{"cpu": "2", "memory": "2Gi", "ephemeral-storage": "4Gi"},
-				},
-				"security": map[string]any{
-					"podSecurityContext":       map[string]any{"runAsNonRoot": true, "runAsUser": int64(1000), "runAsGroup": int64(1000), "fsGroup": int64(1000)},
-					"containerSecurityContext": map[string]any{"allowPrivilegeEscalation": false, "runAsNonRoot": true, "runAsUser": int64(1000), "runAsGroup": int64(1000), "capabilities": map[string]any{"drop": []any{"ALL"}}},
-				},
-				"persistence": map[string]any{
-					"volumeClaim": map[string]any{"enabled": false},
-					"dataVolume":  []any{map[string]any{"name": "data", "emptyDir": map[string]any{}}},
-				},
-			},
-		},
+		"controlPlane": controlPlane,
 		"policies": map[string]any{
 			"resourceQuota": map[string]any{"enabled": false},
 			"limitRange":    map[string]any{"enabled": false},
@@ -306,5 +420,5 @@ func values(name, namespace string) map[string]any {
 			"context": name,
 			"server":  fmt.Sprintf("https://%s.%s:443", name, namespace),
 		},
-	}
+	}, nil
 }
