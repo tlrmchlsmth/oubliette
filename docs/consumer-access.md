@@ -97,6 +97,11 @@ a ten-second request deadline per check. Failure closes access rather than
 continuing with cached authorization. Identity changes, replacement resources,
 readiness loss, deletion and shortened leases also close access.
 
+The session owns the shared host port-forward connection. A broken pipe from
+one completed client request (for example, `kubectl exec`) closes that request
+without tearing down unrelated connections. Actual host transport loss still
+ends the session. Ordinary host request timeouts are excluded from the tunnel URL.
+
 A connection ends at the expiry observed when it started, even if MCP later
 renews the Oubliette. Reconnect after renewal to adopt a later deadline. An
 expired lease cancels the tunnel independently of the next polling interval.

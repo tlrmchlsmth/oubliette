@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -131,11 +132,10 @@ func (b *KubernetesBackend) Open(ctx context.Context, lease Lease) (Connection, 
 	if err != nil {
 		return nil, err
 	}
-	clientset, err := kubernetes.NewForConfig(b.Config)
+	url, err := portForwardURL(b.Config, lease.Namespace, pod)
 	if err != nil {
 		return nil, ErrTransport
 	}
-	url := clientset.CoreV1().RESTClient().Post().Namespace(lease.Namespace).Resource("pods").Name(pod).SubResource("portforward").URL()
 	// The tunnel lives for the session, not the ordinary host request timeout.
 	forwardConfig := rest.CopyConfig(b.Config)
 	forwardConfig.Timeout = 0
@@ -174,6 +174,16 @@ func (b *KubernetesBackend) Open(ctx context.Context, lease Lease) (Connection, 
 	connection.config = bootstrap
 	ok = true
 	return connection, nil
+}
+
+func portForwardURL(config *rest.Config, namespace, pod string) (*url.URL, error) {
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	// REST requests inherit the HTTP client's timeout as a URL query parameter.
+	// Ordinary host reads stay bounded, but this tunnel lives for the lease.
+	return clientset.CoreV1().RESTClient().Post().Namespace(namespace).Resource("pods").Name(pod).SubResource("portforward").Timeout(0).URL(), nil
 }
 
 // SPDY reads the HTTP upgrade response directly from its socket. A request
@@ -223,8 +233,31 @@ type contextDialer struct {
 }
 
 func (d contextDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
-	return spdy.Negotiate(d.upgrader, d.client, d.request, protocols...)
+	connection, protocol, err := spdy.Negotiate(d.upgrader, d.client, d.request, protocols...)
+	if err != nil {
+		return nil, protocol, err
+	}
+	return ownStreamConnection(d.request.Context(), connection), protocol, nil
 }
+
+// client-go v0.35 closes its shared SPDY connection after a per-request error
+// (including a broken pipe when kubectl exec finishes). The session owns this
+// connection instead: local stream errors remain local, while cancellation and
+// genuine peer/transport closure still end the tunnel through CloseChan.
+func ownStreamConnection(ctx context.Context, connection httpstream.Connection) httpstream.Connection {
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = connection.Close()
+		case <-connection.CloseChan():
+		}
+	}()
+	return sessionStreamConnection{Connection: connection}
+}
+
+type sessionStreamConnection struct{ httpstream.Connection }
+
+func (sessionStreamConnection) Close() error { return nil }
 
 func controlPlaneTarget(lease Lease, service *corev1.Service, pods []corev1.Pod) (string, int, error) {
 	for _, pod := range pods {
