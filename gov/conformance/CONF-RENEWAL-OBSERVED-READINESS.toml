@@ -1,0 +1,14 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-RENEWAL-OBSERVED-READINESS"
+title = "Renewed readiness observes current generation"
+
+[case]
+path = "internal/lifecycle/service_test.go"
+selector = "TestRenewedViewRequiresObservedGeneration"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-LIFECYCLE"
+version = "0.1.0"
