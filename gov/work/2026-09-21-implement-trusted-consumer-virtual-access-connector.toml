@@ -1,0 +1,49 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-09-21-001"
+title = "Implement trusted consumer virtual access connector"
+status = "done"
+created = "2026-09-21"
+started = "2026-09-21"
+completed = "2026-09-21"
+refs = [
+    "RFC-0001:C-AGENT-INTERFACE",
+    "RFC-0001:C-API-ISOLATION",
+    "RFC-0001:C-LIFECYCLE",
+    "ADR-0007",
+    "ADR-0011",
+    "ADR-0012",
+    "ADR-0014",
+]
+
+[content]
+description = "Productize the trusted external consumer connector selected by [[ADR-0007]] and [[ADR-0014]]. Authenticate lifecycle ownership, pin resource identity, establish a private virtual-only tunnel, deliver and rotate minimal virtual credentials through a private file sink, and fail closed on expiry, cancellation, readiness loss or authorization failure. Include portable adversarial tests and consumer integration documentation. Live deployment, sandbox-specific transport, aggregate allocation limits, stronger runtime isolation, storage and image-access decisions remain separate work."
+
+[[content.acceptance_criteria]]
+text = "Reject foreign ownership, expired or deleting resources, stale readiness, and same-name replacement before credential delivery."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Provide an explicit-context trusted connector CLI with loopback-only port-forwarding and short-lived virtual credentials delivered outside stdout and MCP."
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Rotate credentials atomically and close the tunnel and remove output on cancellation, lease expiry, authorization failure or transport failure."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Reject executable or file-referencing bootstrap authentication and construct an agent kubeconfig containing only virtual CA, TLS name, endpoint and token."
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "Document the consumer handoff, operational trust boundaries and remaining live-cluster acceptance; pass Go tests and governance guards."
+status = "done"
+category = "chore"
+
+[verification]
+required_guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]

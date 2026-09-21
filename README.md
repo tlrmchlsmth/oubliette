@@ -34,6 +34,15 @@ export OUBLIETTE_MCP_TOKEN="$(kubectl -n consumer create token agent --audience=
 oub list
 ```
 
+## Consumer kubectl access
+
+The trusted consumer can use `oub-connect` to attach an agent to its ready
+Oubliette. It verifies lifecycle ownership, opens a loopback-only virtual API
+tunnel, and writes a minimal virtual kubeconfig privately with automatic token
+rotation and lease-bound cleanup. It runs outside the agent sandbox; the consumer
+owns sandbox delivery and private routing. See the [consumer access contract](docs/consumer-access.md)
+for usage, permissions, failure behavior, and the live-cluster acceptance gate.
+
 ## Kueue integration
 
 Host-authoritative Kueue integration is opt-in through the controller's
