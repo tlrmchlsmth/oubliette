@@ -1,0 +1,24 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-09-21-003"
+title = "Expose authenticated lifecycle operations to trusted consumers"
+status = "done"
+created = "2026-09-21"
+started = "2026-09-21"
+completed = "2026-09-21"
+refs = [
+    "RFC-0001:C-AGENT-INTERFACE",
+    "ADR-0007",
+]
+
+[content]
+description = "Expose the existing ownership-enforced lifecycle service through a trusted consumer CLI mode. Resolve the caller from an audience-bound token on every call, accept only typed lifecycle inputs, and return metadata without credentials."
+
+[[content.acceptance_criteria]]
+text = "Provide authenticated typed lifecycle operations through the trusted connector CLI without exposing credentials."
+status = "done"
+category = "added"
+
+[verification]
+required_guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]

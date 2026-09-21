@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -33,11 +34,12 @@ func run() error {
 	hostConfig := fs.String("host-kubeconfig", "", "trusted consumer host kubeconfig (required)")
 	hostContext := fs.String("host-context", "", "explicit host context (required)")
 	tokenFile := fs.String("caller-token-file", "", "private file containing caller's oubliette-mcp audience token (required)")
+	lifecycleTool := fs.String("lifecycle-tool", "", "trusted lifecycle operation; typed JSON arguments on stdin")
 	output := fs.String("output-dir", "", "new absolute directory on trusted consumer filesystem (required)")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
 	}
-	if fs.NArg() != 1 || *hostConfig == "" || *hostContext == "" || *tokenFile == "" || *output == "" {
+	if *hostConfig == "" || *hostContext == "" || *tokenFile == "" || (*lifecycleTool == "" && (fs.NArg() != 1 || *output == "")) || (*lifecycleTool != "" && (fs.NArg() != 0 || *output != "")) {
 		return errors.New("usage: oub-connect --host-kubeconfig PATH --host-context CONTEXT --caller-token-file PATH --output-dir NEW_DIRECTORY NAME")
 	}
 	// ExplicitPath avoids merging an ambient KUBECONFIG into the host config.
@@ -55,6 +57,21 @@ func run() error {
 	host, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
 		return errors.New("cannot initialize host client")
+	}
+	if *lifecycleTool != "" {
+		arguments, err := io.ReadAll(io.LimitReader(os.Stdin, 65537))
+		if err != nil {
+			return errors.New("cannot read lifecycle arguments")
+		}
+		backend := &connector.KubernetesBackend{Host: host, Resolver: mcpauth.KubernetesResolver{Client: host, Audience: mcpauth.DefaultAudience}, Token: func() (string, error) { return connector.ReadTokenFile(*tokenFile) }}
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+		result, err := backend.Lifecycle(ctx, *lifecycleTool, arguments)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(os.Stdout, string(result))
+		return err
 	}
 	sink, err := connector.NewFileSink(*output)
 	if err != nil {

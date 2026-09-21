@@ -78,6 +78,30 @@ to the caller identity merely so the agent can use MCP. The trusted consumer is
 part of the host security boundary. A compromised consumer with broad host
 credentials can bypass this connector's checks.
 
+## Trusted lifecycle adapter
+
+A consumer can implement an identity-bound MCP broker using the same lifecycle
+service through `oub-connect --lifecycle-tool TOOL`. Supply the explicit host
+kubeconfig/context and caller-token file above, omit the name positional argument
+and output directory, and send a single JSON object on stdin. For example:
+
+```sh
+printf '%s' '{"name":"agent-task","ttlSeconds":600}' | ./bin/oub-connect \
+  --host-kubeconfig /consumer/private/host.kubeconfig \
+  --host-context approved-host \
+  --caller-token-file /consumer/private/agent-mcp.token \
+  --lifecycle-tool oubliette_create
+```
+
+Supported operations are `oubliette_create`, `oubliette_get`, `oubliette_list`,
+`oubliette_renew`, and `oubliette_delete`. Inputs match the existing MCP tool
+schemas; unknown fields, extra JSON documents and inputs over 64 KiB are rejected.
+Every operation authenticates its audience-bound token and uses the existing
+ownership-enforcing lifecycle service. Output is JSON metadata, never credentials.
+This mode additionally requires host Oubliette CRUD permissions on the trusted
+consumer. Never pass host credentials or this executable into an agent sandbox;
+a broker must bind identity and policy from trusted configuration.
+
 ## Credential and lease behavior
 
 The bootstrap kubeconfig stays in process memory. The connector rejects
