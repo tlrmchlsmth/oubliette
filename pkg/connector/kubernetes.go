@@ -60,7 +60,11 @@ func (b *KubernetesBackend) Check(ctx context.Context) (Lease, error) {
 	if err != nil {
 		return Lease{}, ErrDenied
 	}
-	caller, err := b.Resolver.Resolve(ctx, strings.TrimSpace(token))
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return Lease{}, ErrDenied
+	}
+	caller, err := b.Resolver.Resolve(ctx, token)
 	if err != nil || caller == "" {
 		return Lease{}, ErrDenied
 	}

@@ -1,0 +1,24 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-09-22-001"
+title = "Normalize private lifecycle token files consistently"
+status = "done"
+created = "2026-09-22"
+started = "2026-09-22"
+completed = "2026-09-22"
+refs = [
+    "RFC-0001:C-AGENT-INTERFACE",
+    "ADR-0007",
+]
+
+[content]
+description = "Normalize whitespace in private caller-token files before both trusted lifecycle and virtual-access authentication. Reject empty files locally and exercise both paths against the same private token fixture."
+
+[[content.acceptance_criteria]]
+text = "Both connector operations authenticate newline-terminated private token files consistently and reject empty or whitespace-only tokens."
+status = "done"
+category = "fixed"
+
+[verification]
+required_guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]

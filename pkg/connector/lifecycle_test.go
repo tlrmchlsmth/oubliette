@@ -3,6 +3,9 @@ package connector
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -10,6 +13,38 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+func TestPrivateTokenNormalizationAcrossConnectorOperations(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = oubv1.AddToScheme(scheme)
+	host := fake.NewClientBuilder().WithScheme(scheme).WithObjects(readyObject()).Build()
+	path := filepath.Join(t.TempDir(), "caller.token")
+	calls := 0
+	b := &KubernetesBackend{Host: host, Name: "alice", Token: func() (string, error) { return ReadTokenFile(path) },
+		Resolver: resolverFunc(func(_ context.Context, token string) (string, error) {
+			calls++
+			if token != "private-lifecycle-token" {
+				t.Fatal("resolver received an unnormalized or empty token")
+			}
+			return "alice", nil
+		}),
+	}
+	for _, token := range []string{"private-lifecycle-token", "private-lifecycle-token\n", " \tprivate-lifecycle-token\r\n", "", " \t\r\n"} {
+		if err := os.WriteFile(path, []byte(token), 0600); err != nil {
+			t.Fatal(err)
+		}
+		before := calls
+		_, checkErr := b.Check(context.Background())
+		_, lifecycleErr := b.Lifecycle(context.Background(), "oubliette_list", []byte(`{}`))
+		if strings.TrimSpace(token) == "" {
+			if !errors.Is(checkErr, ErrDenied) || !errors.Is(lifecycleErr, ErrDenied) || calls != before {
+				t.Fatal("empty token did not fail locally before authentication")
+			}
+		} else if checkErr != nil || lifecycleErr != nil || calls != before+2 {
+			t.Fatalf("private token file rejected: check=%v lifecycle=%v", checkErr, lifecycleErr)
+		}
+	}
+}
 
 func TestTrustedLifecycleUsesAuthenticatedOwnership(t *testing.T) {
 	scheme := runtime.NewScheme()

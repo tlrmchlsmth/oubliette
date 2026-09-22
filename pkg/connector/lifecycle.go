@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/tlrmchlsmth/oubliette/internal/lifecycle"
@@ -22,6 +23,10 @@ func (b *KubernetesBackend) Lifecycle(ctx context.Context, tool string, argument
 	defer cancel()
 	token, err := b.Token()
 	if err != nil {
+		return nil, ErrDenied
+	}
+	token = strings.TrimSpace(token)
+	if token == "" {
 		return nil, ErrDenied
 	}
 	caller, err := b.Resolver.Resolve(ctx, token)
