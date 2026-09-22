@@ -1,0 +1,14 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-TRUSTED-LIFECYCLE-OWNERSHIP"
+title = "Trusted consumer lifecycle preserves caller ownership"
+
+[case]
+path = "pkg/connector/lifecycle_test.go"
+selector = "TestTrustedLifecycleUsesAuthenticatedOwnership"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-AGENT-INTERFACE"
+version = "0.1.0"

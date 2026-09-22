@@ -1,0 +1,24 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-09-21-004"
+title = "Keep renewed lifecycle views provisioning until observed"
+status = "done"
+created = "2026-09-21"
+started = "2026-09-21"
+completed = "2026-09-21"
+refs = [
+    "RFC-0001:C-LIFECYCLE",
+    "ADR-0007",
+]
+
+[content]
+description = "Prevent trusted consumers from attaching against stale readiness after a lease renewal increments the resource generation."
+
+[[content.acceptance_criteria]]
+text = "Report Ready only when both controller and Ready condition observe the current resource generation."
+status = "done"
+category = "fixed"
+
+[verification]
+required_guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]

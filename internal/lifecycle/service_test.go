@@ -115,3 +115,20 @@ func TestUnownedAndUnauthenticatedResourcesFailClosed(t *testing.T) {
 		t.Fatalf("unauthenticated Get() error = %v", err)
 	}
 }
+
+func TestRenewedViewRequiresObservedGeneration(t *testing.T) {
+	obj := &oubv1.Oubliette{ObjectMeta: metav1.ObjectMeta{Name: "mine", Generation: 2}}
+	obj.Status.ObservedGeneration = 1
+	obj.Status.Conditions = []metav1.Condition{{Type: oubv1.ConditionReady, Status: metav1.ConditionTrue, ObservedGeneration: 1}}
+	if got := project(obj).Phase; got != "Provisioning" {
+		t.Fatalf("stale readiness: %s", got)
+	}
+	obj.Status.ObservedGeneration = 2
+	if got := project(obj).Phase; got != "Provisioning" {
+		t.Fatalf("stale condition: %s", got)
+	}
+	obj.Status.Conditions[0].ObservedGeneration = 2
+	if got := project(obj).Phase; got != "Ready" {
+		t.Fatalf("current readiness: %s", got)
+	}
+}

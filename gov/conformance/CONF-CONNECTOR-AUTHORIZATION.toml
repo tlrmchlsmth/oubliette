@@ -1,0 +1,14 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-CONNECTOR-AUTHORIZATION"
+title = "Consumer connector validates lifecycle ownership and readiness"
+
+[case]
+path = "pkg/connector/connector_test.go"
+selector = "TestAuthorizationBoundary"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-API-ISOLATION"
+version = "0.1.0"

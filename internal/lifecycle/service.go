@@ -256,6 +256,7 @@ func validateTTL(seconds int64) error {
 
 func project(obj *oubv1.Oubliette) View {
 	phase := "Provisioning"
+	ready := apiMeta.FindStatusCondition(obj.Status.Conditions, oubv1.ConditionReady)
 	switch {
 	case !obj.DeletionTimestamp.IsZero():
 		phase = "Deleting"
@@ -263,7 +264,7 @@ func project(obj *oubv1.Oubliette) View {
 		phase = "Forgotten"
 	case apiMeta.IsStatusConditionTrue(obj.Status.Conditions, oubv1.ConditionExpiring):
 		phase = "Expiring"
-	case apiMeta.IsStatusConditionTrue(obj.Status.Conditions, oubv1.ConditionReady):
+	case ready != nil && ready.Status == metav1.ConditionTrue && ready.ObservedGeneration == obj.Generation && obj.Status.ObservedGeneration == obj.Generation:
 		phase = "Ready"
 	}
 	conditions := make([]ConditionView, 0, len(obj.Status.Conditions))

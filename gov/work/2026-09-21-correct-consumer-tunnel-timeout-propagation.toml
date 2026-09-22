@@ -1,0 +1,29 @@
+#:schema ../schema/work.schema.json
+
+[govctl]
+id = "WI-2026-09-21-002"
+title = "Correct consumer tunnel timeout propagation"
+status = "done"
+created = "2026-09-21"
+started = "2026-09-21"
+completed = "2026-09-21"
+refs = [
+    "ADR-0014",
+    "RFC-0001:C-AGENT-INTERFACE",
+]
+
+[content]
+description = "Correct session tunnel URL timeout propagation and isolate ordinary client stream closure from loss of the authenticated host transport. Preserve fail-closed cancellation when the host transport actually terminates."
+
+[[content.acceptance_criteria]]
+text = "Keep ordinary request timeouts off session port-forward URLs."
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "A closed forwarded client connection must not revoke unrelated live connections; host transport loss must still revoke access."
+status = "done"
+category = "fixed"
+
+[verification]
+required_guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]

@@ -1,0 +1,14 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-CONNECTOR-FAIL-CLOSED"
+title = "Consumer connector closes access on failure or expiry"
+
+[case]
+path = "pkg/connector/connector_test.go"
+selector = "TestSessionClosesOnFailure"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-LIFECYCLE"
+version = "0.1.0"

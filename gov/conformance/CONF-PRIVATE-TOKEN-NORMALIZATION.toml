@@ -1,0 +1,14 @@
+#:schema ../schema/conformance.schema.json
+
+[govctl]
+id = "CONF-PRIVATE-TOKEN-NORMALIZATION"
+title = "Private token normalization across connector operations"
+
+[case]
+path = "pkg/connector/lifecycle_test.go"
+selector = "TestPrivateTokenNormalizationAcrossConnectorOperations"
+guards = ["GUARD-OUBLIETTE-GO-CONFORMANCE-SUITE"]
+
+[[case.requirements]]
+ref = "RFC-0001:C-AGENT-INTERFACE"
+version = "0.1.0"
