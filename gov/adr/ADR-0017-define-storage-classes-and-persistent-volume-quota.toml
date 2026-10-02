@@ -3,32 +3,54 @@
 [govctl]
 id = "ADR-0017"
 title = "Define storage classes and persistent volume quota"
-status = "proposed"
+status = "accepted"
 date = "2026-08-25"
 refs = [
     "RFC-0001",
     "ADR-0006",
+    "ADR-0005",
+    "ADR-0010",
+    "ADR-0019",
 ]
 
 [content]
-context = "Agents with virtual cluster-admin can create PVCs, but the host must control provisioners, topology, capacity, reclaim behavior, and total persistent storage. StorageClass and quota behavior also affects model access, benchmark artifacts, and whether TTL teardown actually forgets durable data. Decision criteria: vCluster synchronization support, hard capacity and object quota, topology correctness, controlled StorageClass exposure, reclaim and deletion guarantees, expansion and snapshot semantics, and deterministic behavior at quota exhaustion."
-decision = """
-Describe the decision that was made.
-What is the change that we're proposing and/or doing?"""
-consequences = "The choice will define the tenant-visible storage API, profile quota fields, host StorageClass mapping, allowed volume features, cleanup verification, and which persistent artifacts may outlive an Oubliette."
+context = "Agents with virtual cluster-admin can create PVCs, but the host must control provisioners, topology, capacity, reclaim behavior, and total persistent storage. ADR-0005 disables PVC synchronization until this boundary is accepted, and ADR-0006 keeps the stub profile at zero PVCs. A disposable Pirate spike with the pinned vCluster chart 0.36.1 proved that selector-gated StorageClasses synchronize into the virtual API, RWO and RWX claims synchronize to the host, host ResourceQuota rejection appears as a deterministic virtual SyncError, and an unselected class remains unsynchronized with a SyncWarning. The Pirate spike also proved that backend behavior cannot be inferred from Kubernetes requested bytes: a 128Mi TopoLVM request provisioned 300Mi, while a 64Mi NFS claim accepted a 96Mi file. Pirate currently has no VolumeSnapshotClass and its TopoLVM device classes are not thin-provisioned, so copy-on-write seeding is unavailable there. A disposable Waldorf spike with VAST CSI 2.6.2 proved that an existing same-namespace RWX PVC can produce an independently writable clone without Kubernetes snapshot APIs. The clone preserved source data, later mutations did not affect the source, and the clone PV deleted promptly. Source PV deletion was delayed by the transient provider snapshot used for cloning, including with blocking_clones=true, but the operator-owned seed source is retained during normal Oubliette teardown, so this delay does not by itself disqualify per-Oubliette clone deletion. The initial Waldorf capacity write did not distinguish logical file length from VAST allocated-byte quota accounting; a corrected incompressible-data test could not mount because Waldorf nodes failed to resolve the VAST VIP-pool FQDN. Hard capacity enforcement and provider-side deletion observation therefore remain unresolved rather than disproved. The production shared-vast class also uses Retain, although an isolated Delete class successfully reclaimed test clone PVs. Decision criteria: stable tenant-facing names, hard claim-count and actual-capacity bounds, topology correctness, cross-clique isolation, controlled class exposure, deterministic quota feedback, reclaim and deletion proof, and a safe path to optional operator-owned seeded volumes."
+decision = "Expose only operator-defined virtual StorageClasses selected by the resolved immutable resource profile. Each profile entry defines a stable tenant-facing class name, its private allowlisted host-class mapping, permitted RWO or RWX access modes, filesystem volume mode, minimum request and allocation unit, maximum claim count and requested bytes, and enabled storage features. Agents must name an exposed virtual class explicitly and cannot select host class names, provisioners, defaults, or profile exceptions. RWO and RWX are separate capabilities; a profile may expose either or both only after its backend passes conformance. The controller enables PVC synchronization only for storage-capable profiles, imports only selector-approved classes, keeps tenant StorageClass and PersistentVolume synchronization disabled, and installs host admission before handoff. Initial tenant claims are dynamically provisioned filesystem volumes. Host admission rejects omitted or unapproved classes, static volume binding, selectors, raw block, expansion, snapshots, clones, arbitrary data sources, unsupported access modes, and requests below the backend allocation unit. The derived host namespace receives aggregate and per-class ResourceQuota for persistentvolumeclaims and requests.storage. Quota is authoritative on the host and its sync failure must remain visible in virtual events; virtual policy is advisory only. A class is eligible only when its provisioner enforces per-volume capacity at least as strictly as the admitted request, provides required topology and cross-clique isolation, uses Delete reclaim behavior, and exposes enough state to verify backend deletion. Requested-byte quota alone is insufficient. The stub profile remains storage-free with zero PVC quota and disabled PVC sync. Profiles may optionally declare an operator-owned immutable seed. The controller may materialize an independent writable per-Oubliette clone before readiness, without exposing a source PVC, snapshot handle, or host credential to the agent. The destination is charged fully to the profile quota and deleted with the Oubliette. Seed support remains disabled until a backend-specific spike proves source immutability, clone isolation, actual copy-on-write behavior, topology, quota accounting, and deletion. Finalization does not report Forgotten or complete explicit deletion until synchronized claims, derived PVs, attachments, snapshots or clones, and provider allocations are absent. A stuck provider deletion leaves cleanup observably incomplete and alerts the operator. Operator-owned evidence storage remains outside this tenant storage contract and survives under ADR-0010."
+consequences = "Tenant storage remains a small stable API while operators can map RWO and RWX capabilities to environment-specific provisioners without exposing host resource names. Storage-enabled profiles require class discovery, PVC sync, host admission, aggregate and per-class quota, minimum-allocation validation, provider deletion observation, and conformance coverage before handoff. A Kubernetes ResourceQuota bounds declared requests but does not prove physical enforcement, so every backend mapping needs separate capacity, isolation, topology, and teardown evidence. Pirate TopoLVM is a viable RWO candidate only after its 300Mi minimum allocation is reflected in admission and accounting. Pirate NFS is not eligible for RWX because the spike wrote beyond requested capacity. Pirate copy-on-write seeds remain unavailable with its current thick TopoLVM configuration and absent VolumeSnapshotClass. Waldorf VAST CSI proves that same-namespace RWX seed cloning and prompt destination-clone reclamation are technically viable. Waldorf is not yet eligible because hard allocated-byte quota enforcement has not completed conformance, the current VIP-pool DNS failure prevents mounting new claims, the production shared-vast class uses Retain, and transient clone dependencies are invisible through the Kubernetes snapshot API. An operator-defined Delete class addresses reclaim policy, but eligibility still requires a successful incompressible-data quota test, stable mount resolution, and enough provider or CSI state to prove destination allocations and transient dependencies are gone. The delayed deletion of an operator-owned seed after a clone does not by itself fail normal Oubliette teardown because the seed is retained. Copy-on-write seeds remain a gated extension rather than part of the initial PVC surface. Stub and Milestone 0 behavior do not change. Restart-safe nested control planes, a storage-capable profile, RWX enablement, and seed materialization each require an active work item and their applicable conformance evidence."
 
 [[content.alternatives]]
 text = "Expose operator-defined virtual StorageClasses mapped to allowlisted host classes with per-profile PVC quota"
-status = "considered"
+status = "accepted"
+pros = [
+    "Keeps tenant names stable while operators map environment-specific RWO and RWX backends",
+    "Combines selector-gated discovery, host admission, per-class quota, and provider conformance",
+    "Leaves a narrow gated path for operator-owned copy-on-write seeds without exposing source storage",
+]
+cons = [
+    "Requires controller-owned class mapping, admission, backend capability discovery, and deletion observation",
+    "Cannot treat requested-byte ResourceQuota as proof of physical capacity enforcement",
+]
 
 [[content.alternatives]]
 text = "Expose selected host StorageClasses directly and rely on host ResourceQuota"
-status = "considered"
+status = "rejected"
+pros = ["Uses native host classes with the least translation and controller logic"]
+cons = [
+    "Exposes host names and defaults, permits environment drift, and cannot by itself reject unsafe class features",
+    "ResourceQuota accounts requests but does not prove backend capacity or cross-clique isolation",
+]
 
 [[content.alternatives]]
 text = "Support only ephemeral volumes and prohibit synchronized PVCs"
-status = "considered"
+status = "rejected"
+pros = ["Has the smallest synchronization surface and strongest simple teardown story"]
+cons = ["Cannot provide restart-safe nested control planes, durable workspaces, or persistent benchmark artifacts"]
 
 [[content.alternatives]]
 text = "Allocate one pre-provisioned host volume per Oubliette tier"
-status = "considered"
+status = "rejected"
+pros = ["Makes initial allocation and maximum claim count simple and predictable"]
+cons = [
+    "Wastes capacity, couples tier creation to static volumes, and does not support flexible independent claims",
+    "Introduces static binding and recycling obligations that complicate isolation and teardown",
+]
